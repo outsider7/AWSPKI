@@ -188,7 +188,7 @@ https://aws-quickstart.github.io/quickstart-microsoft-pki/
 
 1. 登录您的 AWS 账户，然后选择以下选项之一启动 AWS CloudFormation 模板。 如需有关选择选项的帮助，请参阅本指南前面的[部署选项](https://aws-quickstart.github.io/quickstart-microsoft-pki/#_deployment_options)。
     
-| [Deploy Microsoft PKI into a new VPC on AWS](https://fwd.aws/V4P9Q)       | [View template](https://fwd.aws/aa5WK) | 登陆远程桌面需要 RD Host>0     |
+| [Deploy Microsoft PKI into a new VPC on AWS](https://fwd.aws/V4P9Q)       | [View template](https://fwd.aws/aa5WK) | 登陆远程桌面需要 RD Host>0 ,RDP与SubCA一个AZ   |
 | ------------------------------------------------------------------------- | -------------------------------------- | --- |
 | [Deploy Microsoft PKI into an existing VPC on AWS](https://fwd.aws/vgDqv) | [View template](https://fwd.aws/Axdrp) |     |
 
