@@ -1,7 +1,8 @@
 # 介绍
 
 本文档将介绍如何使用 AWS 私有证书颁发机构 (AWS Private CA) 安全地设置完整的 CA 层次结构，并为各种用例创建证书。 这些用例包括终止 TLS、代码签名、文档签名、IoT 设备身份验证和电子邮件真实性验证的内部应用程序。 我们将涵盖 CA 管理员、应用程序开发人员和安全管理员等工作职能，并向您展示这些角色如何遵循最小权限原则并执行与证书管理相关的各种功能。 此外，您还将学习如何使用 AWS Security Hub 监控您的 PKI 基础设施。
-完整英文版文档链接：https://github.com/aws-samples/data-protection 
+
+完整英文版文档链接：https://github.com/aws-samples/data-protection  
 完整英文版workshop链接：https://catalog.workshops.aws/certificatemanager
 
 
@@ -579,7 +580,7 @@ AWS Private CA 在使用四种模板生成各种证书方面提供了完全的�
 
 **在入口处：** 如果对端到端加密没有严格要求，可以将此处理卸载到入口控制器或NLB。 这有助于您优化工作负载的性能并使其更易于配置和管理。 我们将在本模块的下一节中检查此用例
 
-在 pod 上： 在 Kubernetes 中，pod 是最小的可部署计算单元，它封装了一个或多个应用程序。 从客户端一直到 Kubernetes pod 的流量的端到端加密提供了一种安全的通信模型，其中 TLS 在 Kubernetes 集群内的 pod 处终止。 这对于满足某些安全要求可能很有用。 我们稍后将在本模块中重点介绍此用例
+**在 pod 上**： 在 Kubernetes 中，pod 是最小的可部署计算单元，它封装了一个或多个应用程序。 从客户端一直到 Kubernetes pod 的流量的端到端加密提供了一种安全的通信模型，其中 TLS 在 Kubernetes 集群内的 pod 处终止。 这对于满足某些安全要求可能很有用。 我们稍后将在本模块中重点介绍此用例
 
 **Pod 之间的相互 TLS：** 此用例侧重于 Kubernetes 集群内数据流动的传输加密。 您可以将 AWS Private CA Issuer 插件与 cert-manager 结合使用，以使用 AWS Private CA 颁发证书以保护 pod 之间的通信。 您可以在How to use AWS Private CA for enabling mTLS in AWS App Mesh
 
