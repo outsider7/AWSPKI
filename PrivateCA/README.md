@@ -2,6 +2,8 @@
 
 本文档将介绍如何使用 AWS 私有证书颁发机构 (AWS Private CA) 安全地设置完整的 CA 层次结构，并为各种用例创建证书。 这些用例包括终止 TLS、代码签名、文档签名、IoT 设备身份验证和电子邮件真实性验证的内部应用程序。 我们将涵盖 CA 管理员、应用程序开发人员和安全管理员等工作职能，并向您展示这些角色如何遵循最小权限原则并执行与证书管理相关的各种功能。 此外，您还将学习如何使用 AWS Security Hub 监控您的 PKI 基础设施。
 完整英文版文档链接：https://github.com/aws-samples/data-protection 
+完整英文版workshop链接：https://catalog.workshops.aws/certificatemanager
+
 
 ## 1. 使用个人账号
 
@@ -14,7 +16,7 @@
     
 -   在您登录的 AWS 账户中上传并启动 CloudFormation 堆栈。 如果您对此不熟悉，请遵循[此处的说明](https://catalog.workshops.aws/certificatemanager/en-US/gettingstarted/self-paced/security_admin_cf_instructions)
     
-    -   **注意：** CloudFormation 堆栈可能需要大约 20 分钟来部署研讨会环境，其中包括[内部应用程序练习](https://catalog.workshops.aws/certificatemanager/en-US/httpsexercise) 的基础设施 ) 和 [在 EKS 上保护传输中的数据](https://catalog.workshops.aws/certificatemanager/en-US/eksexercise) 部分
+    -   **注意：** CloudFormation 堆栈可能需要大约 20 分钟来部署环境
 
 为避免您的帐户出现任何权限问题，请确保您具有管理员访问权限。 此外，需要为 CRL S3 存储桶禁用 S3 块公共访问，以便 TLS 客户端可以访问这些存储桶。
 
@@ -564,6 +566,22 @@ AWS Private CA 在使用四种模板生成各种证书方面提供了完全的�
 - **AWS 负载均衡器**控制器管理 Kubernetes 集群的 AWS 弹性负载均衡器。 控制器提供以下资源。
      - 创建 Kubernetes Ingress 时的**AWS 应用程序负载均衡器** (ALB)。
      - 当您创建 LoadBalancer 类型的 Kubernetes 服务时，**AWS 网络负载均衡器** (NLB)。
+
+
+
+
+### 5.1 TLS 终止选项
+
+### 我应该在哪里终止 TLS？
+终止 TLS 连接的方式和位置取决于您的用例、安全策略以及是否需要遵守法规要求。 本节讨论四种经常用于终止 TLS 的不同用例。
+
+**在负载均衡器：** 在负载均衡器级别终止 TLS 的最常见用例是使用公共信任的证书。 这个用例易于部署，证书绑定到负载均衡器本身。 例如，您可以使用 AWS 颁发公共证书并将其与 AWS NLB 绑定。 您可以从如何使用 ACM 终止 Amazon EKS 工作负载上的 HTTPS 流量？了解更多信息 本模块将不涉及案例，因为它使用 ACM 的公共证书，而不是 AWS Private CA 的私有证书
+
+**在入口处：** 如果对端到端加密没有严格要求，可以将此处理卸载到入口控制器或NLB。 这有助于您优化工作负载的性能并使其更易于配置和管理。 我们将在本模块的下一节中检查此用例
+
+在 pod 上： 在 Kubernetes 中，pod 是最小的可部署计算单元，它封装了一个或多个应用程序。 从客户端一直到 Kubernetes pod 的流量的端到端加密提供了一种安全的通信模型，其中 TLS 在 Kubernetes 集群内的 pod 处终止。 这对于满足某些安全要求可能很有用。 我们稍后将在本模块中重点介绍此用例
+
+**Pod 之间的相互 TLS：** 此用例侧重于 Kubernetes 集群内数据流动的传输加密。 您可以将 AWS Private CA Issuer 插件与 cert-manager 结合使用，以使用 AWS Private CA 颁发证书以保护 pod 之间的通信。 您可以在How to use AWS Private CA for enabling mTLS in AWS App Mesh
 
 
 ### 更多案例
