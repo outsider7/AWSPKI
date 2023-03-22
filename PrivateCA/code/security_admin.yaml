@@ -1,0 +1,1013 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: This AWS CloudFormation Template creates the necessary resources that a security admin can leverage for appropriate role assignments to specific job functions that are needed for creating and managing a certificate authority and issuing private certificates using ACM Private CA
+
+Parameters:
+
+    ResourceName:
+        Type: String
+        Default: builders
+        Description: Prefix for resources created in this session.
+
+    InstanceType:
+        Type: String
+        Default: t3.medium
+        AllowedValues:
+            - t2.small
+            - t2.medium
+            - t3.small
+            - t3.medium
+        Description: Pick an instance type for the Cloud9 environment
+    AmazonLinux2AmiId:
+        Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+        Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+# This IAM user will be used for all login and development
+Resources:
+  # CaAdmin CloudFormation
+  S3CrlBucket:
+      DeletionPolicy: Delete
+      Properties:
+        BucketName: !Sub "acm-private-ca-crl-bucket-${AWS::AccountId}"
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+          BlockPublicPolicy: false
+          IgnorePublicAcls: false
+          RestrictPublicBuckets: false
+        Tags:
+          -
+            Key: workshop
+            Value: acm-private-ca
+      Type: AWS::S3::Bucket
+
+  S3IoTBucket:
+      DeletionPolicy: Delete
+      Properties:
+        BucketName: !Sub "certificate-holder-${AWS::AccountId}"
+      Type: AWS::S3::Bucket
+
+  SampleBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: "S3CrlBucket"
+        PolicyDocument:
+          Statement:
+            -
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:PutObjectAcl
+                - s3:GetBucketLocation
+                - s3:GetBucketAcl
+              Effect: Allow
+              Principal:
+                Service:
+                - acm-pca.amazonaws.com
+              Resource:
+                -
+                  Fn::Join:
+                    - ""
+                    -
+                      - "arn:aws:s3:::"
+                      -
+                        Ref: "S3CrlBucket"
+                      - "/*"
+                -
+                  Fn::Join:
+                    - ""
+                    -
+                      - "arn:aws:s3:::"
+                      -
+                        Ref: "S3CrlBucket"
+
+  # App Dev CloudFormation
+  SystemVPC:
+      Type: AWS::EC2::VPC
+      Properties:
+         CidrBlock: 10.0.0.0/16
+         EnableDnsHostnames: true
+         EnableDnsSupport: true
+         Tags:
+            - Key: workshop
+              Value: acm-private-ca
+
+  InternetGateway:
+      Type: AWS::EC2::InternetGateway
+      Properties:
+         Tags:
+            - Key: Name
+              Value: acm-private-ca
+
+  GatewayAttachment:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+         InternetGatewayId:
+           Ref: InternetGateway
+         VpcId: !Ref SystemVPC
+
+  RouteTable:
+      DependsOn:
+      - SystemVPC
+      Type: AWS::EC2::RouteTable
+      Properties:
+         Tags:
+           - Key: Name
+             Value: acm-private-ca
+         VpcId: !Ref SystemVPC
+
+  PublicRoute:
+      DependsOn:
+         - RouteTable
+         - GatewayAttachment
+      Type: AWS::EC2::Route
+      Properties:
+         DestinationCidrBlock: 0.0.0.0/0
+         GatewayId: !Ref InternetGateway
+         RouteTableId: !Ref RouteTable
+
+  Subnet:
+      Type: AWS::EC2::Subnet
+      Properties:
+         CidrBlock: 10.0.0.0/24
+         MapPublicIpOnLaunch: true
+         Tags:
+           - Key: Name
+             Value: acm-private-ca
+         VpcId: !Ref SystemVPC
+         AvailabilityZone:
+            Fn::Select:
+               - 0
+               - Fn::GetAZs: ""
+  SubnetAssoc:
+      DependsOn:
+         - Subnet
+         - RouteTable
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+         RouteTableId: !Ref RouteTable
+         SubnetId: !Ref Subnet
+
+  SubnetTwo:
+      Type: AWS::EC2::Subnet
+      Properties:
+         CidrBlock: 10.0.128.0/24
+         MapPublicIpOnLaunch: true
+         Tags:
+           - Key: Name
+             Value: acm-private-ca
+         VpcId: !Ref SystemVPC
+         AvailabilityZone:
+            Fn::Select:
+               - 1
+               - Fn::GetAZs: ""
+
+  SubnetTwoAssoc:
+      DependsOn:
+         - SubnetTwo
+         - RouteTable
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+         RouteTableId: !Ref RouteTable
+         SubnetId: !Ref SubnetTwo
+
+  PublicNACL:
+      Type: AWS::EC2::NetworkAcl
+      Properties:
+         VpcId: !Ref SystemVPC
+         Tags:
+           -
+            Key: Network
+            Value: Public
+
+  InboundPublicNACLEntry:
+      Type: AWS::EC2::NetworkAclEntry
+      Properties:
+         NetworkAclId: !Ref PublicNACL
+         RuleNumber: 100
+         Protocol: -1
+         RuleAction: allow
+         Egress: false
+         CidrBlock: '0.0.0.0/0'
+         PortRange:
+           From: 0
+           To: 65535
+
+  OutboundPublicNACLEntry:
+      Type: AWS::EC2::NetworkAclEntry
+      Properties:
+         NetworkAclId: !Ref PublicNACL
+         RuleNumber: 100
+         Protocol: -1
+         RuleAction: allow
+         Egress: true
+         CidrBlock: 0.0.0.0/0
+         PortRange:
+           From: 0
+           To: 65535
+
+  SubnetNACLAssociation:
+      Type: AWS::EC2::SubnetNetworkAclAssociation
+      Properties:
+         SubnetId: !Ref Subnet
+         NetworkAclId: !Ref PublicNACL
+
+  SubnetTwoNACLAssociation:
+      Type: AWS::EC2::SubnetNetworkAclAssociation
+      Properties:
+         SubnetId: !Ref SubnetTwo
+         NetworkAclId: !Ref PublicNACL
+
+  EC2SecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: "Instance security group"
+        GroupName: InstanceSecurityGroup
+        VpcId:
+          Ref: SystemVPC
+        SecurityGroupEgress:
+          - IpProtocol: -1
+            FromPort: 0
+            ToPort: 65535
+            CidrIp: 0.0.0.0/0
+
+  # cryptocloud9envIOT:
+  #     Type : AWS::Cloud9::EnvironmentEC2
+  #     Properties:
+  #        # OwnerArn for event engine module
+  #        # OwnerArn for testing in AWS account
+  #        # OwnerArn: !Sub 'arn:aws:sts::${AWS::AccountId}:user/eventengine'
+  #        OwnerArn: !Sub 'arn:aws:sts::${AWS::AccountId}:assumed-role/IOTDevRole/MasterKey'
+  #        Description: "Cloud9 environment for the IoT developer persona"
+  #        AutomaticStopTimeMinutes: 60
+  #        InstanceType: !Ref InstanceType
+  #        Name: "workshop-environment"
+  #        SubnetId: !Ref Subnet
+  #        Repositories:
+  #           - PathComponent: /data-protection
+  #             RepositoryUrl: https://github.com/aws-samples/data-protection/
+
+  cryptocloud9envAppdev:
+      Type : AWS::Cloud9::EnvironmentEC2
+      Properties:
+         # OwnerArn for event engine module
+         # OwnerArn for testing in AWS account
+         # OwnerArn: !Sub 'arn:aws:sts::${AWS::AccountId}:user/eventengine'
+         # OwnerArn: !Sub 'arn:aws:sts::${AWS::AccountId}:assumed-role/AppDevRole/MasterKey'
+         Description: "Cloud9 environment for ACM PCA workshop"
+         AutomaticStopTimeMinutes: 60
+         InstanceType: !Ref InstanceType
+         Name: "workshop-environment"
+         SubnetId: !Ref Subnet
+         Repositories:
+            - PathComponent: /data-protection
+              RepositoryUrl: https://github.com/aws-samples/data-protection/
+
+  # cryptocloud9envCAadmin:
+  #     Type : AWS::Cloud9::EnvironmentEC2
+  #     Properties:
+  #        # OwnerArn for event engine module
+  #        # OwnerArn for testing in AWS account
+  #        # OwnerArn: !Sub 'arn:aws:sts::${AWS::AccountId}:user/eventengine'
+  #        OwnerArn: !Sub 'arn:aws:sts::${AWS::AccountId}:assumed-role/CaAdminRole/MasterKey'
+  #        Description: "Cloud9 environment for the CA administrator persona"
+  #        AutomaticStopTimeMinutes: 60
+  #        InstanceType: !Ref InstanceType
+  #        Name: "workshop-environment"
+  #        SubnetId: !Ref Subnet
+  #        Repositories:
+  #           - PathComponent: /data-protection
+  #             RepositoryUrl: https://github.com/aws-samples/data-protection/
+
+  # We will use admin privileges for now and make it least privilege as we learn
+  cryptocloudninerole:
+      Type : AWS::IAM::Role
+      Properties:
+         RoleName: 'cryptobuildercloudninerole'
+         AssumeRolePolicyDocument:
+           Version: "2012-10-17"
+           Statement:
+             -
+               Effect: "Allow"
+               Principal:
+                 Service:
+                   - "ec2.amazonaws.com"
+                   - "cloud9.amazonaws.com"
+               Action:
+                 - "sts:AssumeRole"
+
+  # Policy for a user trying out modules on a Cloud9 environment
+  cryptocloudninepolicy:
+      Type : AWS::IAM::Policy
+      Properties:
+         PolicyName : 'cryptobuilder-cloudnine-policy'
+         PolicyDocument :
+            Version: "2012-10-17"
+            Statement:
+              -
+               Effect: "Allow"
+               Action: "*"
+               Resource: "*"
+         Roles:
+            - !Ref cryptocloudninerole
+
+  SsmInstanceProfile:
+      Type: AWS::IAM::InstanceProfile
+      Properties:
+        Roles:
+          -
+            Ref: cryptocloudninerole
+
+# Create the lambda function used for the origin behind the ALB
+
+  LambdaOrigin:
+      Type : AWS::Lambda::Function
+      Properties:
+         FunctionName: 'builders-lambda-origin-one'
+         Handler: "index.lambda_handler"
+         Role: !GetAtt LambdaOriginRole.Arn
+         Runtime: 'python3.9'
+         Tags:
+            - Key: workshop
+              Value: acm-private-ca
+         Code:
+            ZipFile: |
+               from __future__ import print_function
+
+               # This is the lambda origin behing the application load balancer
+               def lambda_handler(event, context):
+                  response = {
+                    "statusCode": 200,
+                    "statusDescription": "200 OK",
+                    "isBase64Encoded": False,
+                    "headers": {
+                    "Content-Type": "text/html; charset=utf-8"
+                    }
+                  }
+
+                  response['body'] = """<html>
+                  <head>
+                  <title>Hello World!</title>
+                  <style>
+                  html, body {
+                  margin: 0; padding: 0;
+                  font-family: arial; font-weight: 700; font-size: 3em;
+                  text-align: center;
+                  }
+                  </style>
+                  </head>
+                  <body>
+                  <p>Hello World!</p>
+                  </body>
+                  </html>"""
+
+                  return response
+
+   # We will use admin privileges for now and make it least privilege as we learn
+  LambdaOriginRole:
+      Type : AWS::IAM::Role
+      Properties:
+         RoleName: 'acmcalblambdaoriginrole'
+         AssumeRolePolicyDocument:
+           Version: "2012-10-17"
+           Statement:
+             -
+               Effect: "Allow"
+               Principal:
+                 Service:
+                   - "lambda.amazonaws.com"
+               Action:
+                 - "sts:AssumeRole"
+
+  # We will use admin privileges for now and make it least privilege as we learn
+  LambdaOriginPolicy:
+      Type : AWS::IAM::Policy
+      Properties:
+         PolicyName : 'acm-alb-lambdaorigin-policy'
+         PolicyDocument :
+            Version: "2012-10-17"
+            Statement:
+              -
+               Effect: "Allow"
+               Action: "*"
+               Resource: "*"
+         Roles:
+            - !Ref LambdaOriginRole
+
+  ALBSecurityGroup:
+      Type: 'AWS::EC2::SecurityGroup'
+      Properties:
+         GroupDescription: 'ALB Security Group'
+         VpcId: !Ref SystemVPC
+         SecurityGroupIngress:
+         - IpProtocol: tcp
+           ToPort: 443
+           FromPort: 443
+           CidrIp: 0.0.0.0/0
+
+  # Creating a ALB in CF - Target group and listener will be createdin Boto
+  ApplicationLoadBalancer:
+      DependsOn:
+        - GatewayAttachment
+      Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+      Properties:
+         Scheme: internet-facing
+         "Name" : "acm-pca-usecase-7-alb"
+         SecurityGroups:
+            - !Ref ALBSecurityGroup
+            - !GetAtt SystemVPC.DefaultSecurityGroup
+         Subnets:
+            - Ref: Subnet
+            - Ref: SubnetTwo
+         Tags:
+            - Key: workshop
+              Value: acm-private-ca
+
+  # EC2 for EKS
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          default:
+          - EC2InstanceSetup
+
+        EC2InstanceSetup:
+          files:
+            /home/ssm-user/.aws/config:
+              content: !Sub |
+                [default]
+                region = ${AWS::Region}
+              mode: '644'
+              owner: ssm-user
+              group: ssm-user
+
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT60M
+
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      IamInstanceProfile: !Ref SsmInstanceProfile
+      ImageId: !Ref AmazonLinux2AmiId
+      InstanceInitiatedShutdownBehavior: stop
+      InstanceType: t2.micro
+      Monitoring: true
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: true
+        DeviceIndex: '0'
+        GroupSet:
+        - !Ref EC2SecurityGroup
+        SubnetId: !Ref Subnet
+      Tenancy: default
+      Tags:
+        - Key: Name
+          Value: KubeManager
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # additional log file for user-data bootstrap details
+          set -x
+          exec > >(tee /var/log/user-data.log|logger -t user-data ) 2>&1
+          echo BEGIN
+          date '+%Y-%m-%d %H:%M:%S'
+
+          yum update -y
+          yum install -y python3
+
+          #install awscli v2
+          cd /tmp
+          wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -O awscliv2.zip
+          unzip -q awscliv2.zip
+          ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+          rm -rf ./aws awscliv2.zip
+          cd /
+
+          groupadd -g 1001 ssm-user
+          useradd -u 1001 -g 1001 ssm-user
+          cd /etc/sudoers.d
+          echo "ssm-user ALL=(ALL) NOPASSWD:ALL" > ssm-agent-users
+          cd /
+
+          #install kubectl
+          cd /home/ssm-user
+          curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.17/2023-01-30/bin/linux/amd64/kubectl
+          chmod +x ./kubectl
+          mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
+          echo 'export PATH=$PATH:$HOME/bin' >> ~/.bashrc
+
+          #install eksctl
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+          mv /tmp/eksctl /usr/local/bin
+
+          #install helm
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 get_helm.sh
+          ./get_helm.sh
+
+          #kick off cluster build
+          eksctl create cluster --name acm-pca-lab --version 1.22 --nodegroup-name acm-pca-nlb-lab-workers --node-type t2.medium --nodes 2 --region ${AWS::Region}
+
+          #change ownership of .kube / kubeconfig
+          chown -R ssm-user /home/ssm-user/.kube
+
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+
+  #Base template resources
+  # We will use admin privileges for now and make it least privilege as we learn
+  CaAdminRole:
+    Type : AWS::IAM::Role
+    Properties:
+       RoleName: 'CaAdminRole'
+       AssumeRolePolicyDocument:
+         Version: "2012-10-17"
+         Statement:
+          -
+             Effect: "Allow"
+             Principal:
+                AWS: !Sub "${AWS::AccountId}"
+             Action:
+               - "sts:AssumeRole"
+       Policies:
+          -
+             PolicyName: "CaAdminRolePolicy"
+             PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    -
+                      Effect: "Allow"
+                      Resource: "*"
+                      Action:
+                         - acm-pca:ImportCertificateAuthorityCertificate
+                         - acm-pca:TagCertificateAuthority
+                         - acm-pca:ListTags
+                         - acm-pca:GetCertificate
+                         - acm-pca:UntagCertificateAuthority
+                         - acm-pca:GetCertificateAuthorityCsr
+                         - acm-pca:GetCertificateAuthorityCertificate
+                         - acm-pca:RevokeCertificate
+                         - acm-pca:UpdateCertificateAuthority
+                         - acm-pca:ListCertificateAuthorities
+                         - acm-pca:DescribeCertificateAuthorityAuditReport
+                         - acm-pca:CreateCertificateAuthorityAuditReport
+                         - acm-pca:RestoreCertificateAuthority
+                         - acm-pca:IssueCertificate
+                         - acm-pca:CreateCertificateAuthority
+                         - acm-pca:DeletePermission
+                         - acm-pca:DescribeCertificateAuthority
+                         - acm-pca:CreatePermission
+                         - acm-pca:ListPermissions
+                         - acm-pca:DeleteCertificateAuthority
+                         - acm:DescribeCertificate
+                         - acm:ListCertificates
+                         - acm:AddTagsToCertificate
+                         - acm:ListTagsForCertificate
+                         - securityhub:Get*
+                         - securityhub:List*
+                         - securityhub:BatchGet*
+                         - securityhub:Describe*
+          -
+             PolicyName: "LambdaSetupPolicy"
+             PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    -
+                      Effect: "Allow"
+                      Resource: "*"
+                      Action:
+                         - lambda:CreateFunction
+                         - lambda:GetFunctionConfiguration
+                         - lambda:GetFunction
+                         - lambda:InvokeFunction
+                         - iam:GetPolicy
+                         - iam:GetPolicyVersion
+                         - iam:ListRolePolicies
+                         - iam:ListAttachedRolePolicies
+                         - iam:GetRole
+                         - iam:GetRolePolicy
+                         - iam:PassRole
+                         - iam:SimulatePrincipalPolicy
+                         - iam:CreateRole
+                         - iam:CreatePolicy
+                         - iam:PutRolePolicy
+          -
+             PolicyName: "CleanupPolicy"
+             PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    -
+                      Effect: "Allow"
+                      Resource: "*"
+                      Action:
+                         - lambda:DeleteFunction
+                         - iam:DeleteRole
+                         - iam:DeleteRolePolicy
+
+
+       ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSCertificateManagerPrivateCAPrivilegedUser
+          - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+          - arn:aws:iam::aws:policy/AmazonS3FullAccess
+          - arn:aws:iam::aws:policy/IAMReadOnlyAccess
+          - arn:aws:iam::aws:policy/AmazonSNSReadOnlyAccess
+          - arn:aws:iam::aws:policy/AWSCloud9User
+
+  # We will use admin privileges for now and make it least privilege as we learn
+  AppDevRole:
+    Type : AWS::IAM::Role
+    Properties:
+       RoleName: 'AppDevRole'
+       AssumeRolePolicyDocument:
+         Version: "2012-10-17"
+         Statement:
+           -
+             Effect: "Allow"
+             Principal:
+                AWS: !Sub "${AWS::AccountId}"
+             Action:
+               - "sts:AssumeRole"
+       Policies:
+       -
+          PolicyName: "AppDevACMPolicy"
+          PolicyDocument:
+             Version: "2012-10-17"
+             Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - acm:ListCertificates
+                  - acm:ListTagsForCertificate
+                  - acm:DescribeCertificate
+                  - acm:RequestCertificate
+                  - acm:DeleteCertificate
+                  - acm:AddTagsToCertificate
+                  - acm-pca:IssueCertificate
+                  - acm-pca:ListTags
+                  - acm-pca:GetCertificate
+                  - acm-pca:GetCertificateAuthorityCertificate
+                  - acm-pca:RevokeCertificate
+                  - acm-pca:ListCertificateAuthorities
+                  - acm-pca:CreatePermission
+                  - acm-pca:ListPermissions
+                  - acm-pca:GetCertificateAuthorityCsr
+                  - acm-pca:DescribeCertificateAuthority
+                  - eks:*
+                Resource: "*"
+       ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+          - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+          - arn:aws:iam::aws:policy/AmazonS3FullAccess
+          - arn:aws:iam::aws:policy/AWSCloud9User
+          - arn:aws:iam::aws:policy/IAMFullAccess
+          - arn:aws:iam::aws:policy/AmazonSSMFullAccess
+
+  # We will use admin privileges for now and make it least privilege as we learn
+  IOTDevRole:
+    Type : AWS::IAM::Role
+    Properties:
+       RoleName: 'IOTDevRole'
+       AssumeRolePolicyDocument:
+         Version: "2012-10-17"
+         Statement:
+           -
+             Effect: "Allow"
+             Principal:
+                AWS: !Sub "${AWS::AccountId}"
+             Action:
+               - "sts:AssumeRole"
+       Policies:
+       -
+          PolicyName: "IOTDevPolicy"
+          PolicyDocument:
+             Version: "2012-10-17"
+             Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - acm:ListCertificates
+                  - acm:ListTagsForCertificate
+                  - acm:DescribeCertificate
+                  - acm:RequestCertificate
+                  - acm:DeleteCertificate
+                  - acm:AddTagsToCertificate
+                  - acm-pca:IssueCertificate
+                  - acm-pca:ListTags
+                  - acm-pca:GetCertificate
+                  - acm-pca:GetCertificateAuthorityCertificate
+                  - acm-pca:RevokeCertificate
+                  - acm-pca:ListCertificateAuthorities
+                  - acm-pca:CreatePermission
+                  - acm-pca:ListPermissions
+                  - acm-pca:GetCertificateAuthorityCsr
+                  - acm-pca:DescribeCertificateAuthority
+                Resource: "*"
+       ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+          - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+          - arn:aws:iam::aws:policy/AmazonS3FullAccess
+          - arn:aws:iam::aws:policy/AWSCloud9User
+          - arn:aws:iam::aws:policy/IAMFullAccess
+          - arn:aws:iam::aws:policy/AmazonSSMFullAccess
+          - arn:aws:iam::aws:policy/AdministratorAccess
+
+  CreationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: ca_cert_creation
+      RetentionInDays: 60
+  RevLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: cert_revocation
+      RetentionInDays: 60
+  RevEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Certificate revoked"
+      EventPattern:
+        source:
+          - "aws.acm-pca"
+        detail-type:
+          - "AWS API Call via CloudTrail"
+        detail:
+          eventSource:
+            - "acm-pca.amazonaws.com"
+          eventName:
+            - "RevokeCertificate"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - RevLogGroup
+              - Arn
+          Id: cert-revocation-log
+        -
+          Arn:
+            Fn::GetAtt:
+              - LambdaCARevocation
+              - Arn
+          Id: rev-cert-lambda
+    DependsOn:
+        - RevLogGroup
+  CreationEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "CA Certificate created"
+      EventPattern:
+        source:
+          - "aws.acm-pca"
+        detail-type:
+          - "AWS API Call via CloudTrail"
+        detail:
+          eventSource:
+            - "acm-pca.amazonaws.com"
+          eventName:
+            - "ImportCertificateAuthorityCertificate"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - CreationLogGroup
+              - Arn
+          Id: ca-cert-creation-log
+        -
+          Arn:
+            Fn::GetAtt:
+            - LambdaCACreation
+            - Arn
+          Id: ca-cert-creation-lambda
+    DependsOn:
+        - CreationLogGroup
+  S3Bucket:
+    DeletionPolicy: Retain
+    Type: 'AWS::S3::Bucket'
+    Properties: {}
+  BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket:
+        Ref: S3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AWSCloudTrailAclCheck
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: 's3:GetBucketAcl'
+            Resource: !Sub 'arn:aws:s3:::${S3Bucket}'
+          - Sid: AWSCloudTrailWrite
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: 's3:PutObject'
+            Resource: !Sub 'arn:aws:s3:::${S3Bucket}/AWSLogs/${AWS::AccountId}/*'
+            Condition:
+              StringEquals:
+                's3:x-amz-acl': bucket-owner-full-control
+  LambdaCACreationPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        Ref: LambdaCACreation
+      Principal: 'events.amazonaws.com'
+      SourceArn:
+        Fn::GetAtt:
+          - CreationEventRule
+          - Arn
+  LambdaCARevocationPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        Ref: LambdaCARevocation
+      Principal: 'events.amazonaws.com'
+      SourceArn:
+        Fn::GetAtt:
+          - RevEventRule
+          - Arn
+  LambdaCACreation:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: CertAuthCreation
+      Handler: index.lambda_handler
+      Runtime: python3.7
+      Timeout: 60
+      Role: !GetAtt LambdaRole.Arn
+      Tags:
+        - Key: workshop
+          Value: acm-private-ca
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import datetime
+          def lambda_handler(event, context):
+            secHubClient = boto3.client('securityhub')
+            accountNum = boto3.client('sts').get_caller_identity()['Account']
+            my_session = boto3.session.Session()
+            region = my_session.region_name
+            caCertARN = event['detail']['requestParameters']['certificateAuthorityArn']
+            date = datetime.datetime.now().isoformat() + "Z"
+            print(date)
+
+            response = secHubClient.batch_import_findings(
+               Findings=[
+                   {
+                       "SchemaVersion": "2018-10-08",
+                       "Id": region + "/" + accountNum + "/" + caCertARN,
+                       "ProductArn": "arn:aws:securityhub:" + region + ":" + accountNum + ":product/" + accountNum + "/default",
+                       "GeneratorId": caCertARN,
+                       "AwsAccountId": accountNum,
+                       "Types": [
+                           "Unusual Behaviors/Process"
+                       ],
+                       "CreatedAt": date,
+                       "UpdatedAt": date,
+                       "Severity": {
+                           "Normalized": 60
+                       },
+                       "Criticality": 80,
+                       "Title": "Certificate Authority Creation",
+                       "Description": "A Private CA certificate was issued in AWS Certificate Manager Private CA",
+                       "Remediation": {
+                           "Recommendation": {
+                               "Text": "Verify this CA certificate creation was taken by a privileged user",
+                               "Url": "https://docs.aws.amazon.com/acm-pca/latest/userguide/PcaAuthAccess.html"
+                           }
+                       },
+                       "ProductFields": {
+                           "aws/securityhub/FindingId": "arn:aws:securityhub:" + region + ":" + accountNum + ":product/" + accountNum + "/default/" + region + "/" + accountNum + "/caCertARN",
+                           "aws/securityhub/SeverityLabel": "MEDIUM",
+                           "aws/securityhub/ProductName": "ACM PCA",
+                           "aws/securityhub/CompanyName": "AWS"
+                       },
+                       "Resources": [
+                           {
+                               "Type": "Other",
+                               "Id": caCertARN,
+                               "Region": region
+                           }
+                       ],
+                       "WorkflowState": "NEW",
+                       "RecordState": "ACTIVE"
+                   },
+               ]
+            )
+            print(response)
+            return 200
+  LambdaCARevocation:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: CertificateRevocation
+      Handler: index.lambda_handler
+      Runtime: python3.7
+      Timeout: 60
+      Role: !GetAtt LambdaRole.Arn
+      Tags:
+        - Key: workshop
+          Value: acm-private-ca
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import datetime
+          def lambda_handler(event, context):
+            secHubClient = boto3.client('securityhub')
+            accountNum = boto3.client('sts').get_caller_identity()['Account']
+            my_session = boto3.session.Session()
+            region = my_session.region_name
+            certARN = event['detail']['requestParameters']['certificateSerial']
+            date = datetime.datetime.now().isoformat() + "Z"
+            print(date)
+
+            response = secHubClient.batch_import_findings(
+               Findings=[
+                   {
+                       "SchemaVersion": "2018-10-08",
+                       "Id": region + "/" + accountNum + "/" + certARN,
+                       "ProductArn": "arn:aws:securityhub:" + region + ":" + accountNum + ":product/" + accountNum + "/default",
+                       "GeneratorId": certARN,
+                       "AwsAccountId": accountNum,
+                       "Types": [
+                           "Unusual Behaviors/Process"
+                       ],
+                       "CreatedAt": date,
+                       "UpdatedAt": date,
+                       "Severity": {
+                           "Normalized": 60
+                       },
+                       "Criticality": 80,
+                       "Title": "Certificate Revocation",
+                       "Description": "A private certificate was revoked in AWS Certificate Manager Private CA",
+                       "Remediation": {
+                           "Recommendation": {
+                               "Text": "Verify this certificate revocation was taken by a privileged user",
+                               "Url": "https://docs.aws.amazon.com/acm-pca/latest/userguide/PcaAuthAccess.html"
+                           }
+                       },
+                       "ProductFields": {
+                           "aws/securityhub/FindingId": "arn:aws:securityhub:" + region + ":" + accountNum + ":product/" + accountNum + "/default/" + region + "/" + accountNum + "/certARN",
+                           "aws/securityhub/SeverityLabel": "MEDIUM",
+                           "aws/securityhub/ProductName": "ACM PCA",
+                           "aws/securityhub/CompanyName": "AWS"
+                       },
+                       "Resources": [
+                           {
+                               "Type": "Other",
+                               "Id": certARN,
+                               "Region": region
+                           }
+                       ],
+                       "WorkflowState": "NEW",
+                       "RecordState": "ACTIVE"
+                   },
+               ]
+            )
+            print(response)
+            return 200
+  LambdaRole:
+      Type: 'AWS::IAM::Role'
+      Properties:
+        RoleName: LambdaSecHubRole
+        AssumeRolePolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - 'sts:AssumeRole'
+        ManagedPolicyArns:
+          - 'arn:aws:iam::aws:policy/AWSSecurityHubFullAccess'
+          - 'arn:aws:iam::aws:policy/CloudWatchFullAccess'
+  SecHub:
+      Type: "AWS::SecurityHub::Hub"
+  myTrail:
+    DependsOn:
+      - BucketPolicy
+    Type: 'AWS::CloudTrail::Trail'
+    Properties:
+      S3BucketName: !Ref S3Bucket
+      IsLogging: true
+      IsMultiRegionTrail: false
+
+Outputs:
+  CRLBucketOutput:
+    Description: Name of the S3 bucket that contains the CRL.
+    Value: !Ref S3CrlBucket
+    Export:
+      Name: CRLBucketName

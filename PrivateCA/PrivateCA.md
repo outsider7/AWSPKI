@@ -1,110 +1,24 @@
+# 介绍
 
+本文档将介绍如何使用 AWS 私有证书颁发机构 (AWS Private CA) 安全地设置完整的 CA 层次结构，并为各种用例创建证书。 这些用例包括终止 TLS、代码签名、文档签名、IoT 设备身份验证和电子邮件真实性验证的内部应用程序。 我们将涵盖 CA 管理员、应用程序开发人员和安全管理员等工作职能，并向您展示这些角色如何遵循最小权限原则并执行与证书管理相关的各种功能。 此外，您还将学习如何使用 AWS Security Hub 监控您的 PKI 基础设施。
+完整英文版文档链接：https://github.com/aws-samples/data-protection 
 
-# Introduction
+## 1. 使用个人账号
 
-In this workshop, we will teach you how to securely setup a complete CA hierarchy using AWS Private Certificate authority (AWS Private CA) and create certificates for various use cases. These use cases include internal applications that terminate TLS, code signing, document signing, IoT device authentication, and email authenticity verification. We will cover job functions such as CA administrators, application developers and security administrators and show you how these personas can follow the principle of least privilege and perform various functions associated with certificate management. In addition, you will also learn how to monitor your PKI infrastructure using AWS Security Hub.
-
-[
-
-## Duration![Header anchor link](data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20fill%3D%22%23000000%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20version%3D%221.1%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M10.59%2C13.41C11%2C13.8%2011%2C14.44%2010.59%2C14.83C10.2%2C15.22%209.56%2C15.22%209.17%2C14.83C7.22%2C12.88%207.22%2C9.71%209.17%2C7.76V7.76L12.71%2C4.22C14.66%2C2.27%2017.83%2C2.27%2019.78%2C4.22C21.73%2C6.17%2021.73%2C9.34%2019.78%2C11.29L18.29%2C12.78C18.3%2C11.96%2018.17%2C11.14%2017.89%2C10.36L18.36%2C9.88C19.54%2C8.71%2019.54%2C6.81%2018.36%2C5.64C17.19%2C4.46%2015.29%2C4.46%2014.12%2C5.64L10.59%2C9.17C9.41%2C10.34%209.41%2C12.24%2010.59%2C13.41M13.41%2C9.17C13.8%2C8.78%2014.44%2C8.78%2014.83%2C9.17C16.78%2C11.12%2016.78%2C14.29%2014.83%2C16.24V16.24L11.29%2C19.78C9.34%2C21.73%206.17%2C21.73%204.22%2C19.78C2.27%2C17.83%202.27%2C14.66%204.22%2C12.71L5.71%2C11.22C5.7%2C12.04%205.83%2C12.86%206.11%2C13.65L5.64%2C14.12C4.46%2C15.29%204.46%2C17.19%205.64%2C18.36C6.81%2C19.54%208.71%2C19.54%209.88%2C18.36L13.41%2C14.83C14.59%2C13.66%2014.59%2C11.76%2013.41%2C10.59C13%2C10.2%2013%2C9.56%2013.41%2C9.17Z%22%20%2F%3E%3C%2Fsvg%3E)
-
-](https://catalog.workshops.aws/certificatemanager/en-US/introduction#duration)
-
-The core sections of the workshop (CA Hierarchy Setup and Internal Application Exercise) should take approximately one hour. You can then choose to complete additional exercises ranging from 30 minutes to one hour long each.
-
-[
-
-## Audience
-
-](https://catalog.workshops.aws/certificatemanager/en-US/introduction#audience)
-
-The target audience of this workshop is anyone who is interested to learn about PKI on AWS. This includes, but is not limited to: security professionals, PKI operators, application developers, and architects.
-
-[
-
-## Background Knowledge
-
-](https://catalog.workshops.aws/certificatemanager/en-US/introduction#background-knowledge)
-
-This workshop may require general AWS knowledge or familiarity. However, most topics are explained with sufficient background if you haven't used the particular service before.
-
-[
-
-## Costs
-
-](https://catalog.workshops.aws/certificatemanager/en-US/introduction#costs)
-
-If you are running this workshop at an official AWS event, you'll be using temporary accounts and costs will not be incurred by you. However, if you are running this by yourself, costs of all resources used will be incurred. This included EKS, AWS Private CA, IoT Core, and ALB.
-
-
-# ...on your own
-
-
-
-### Running the workshop on your own
-
-
-
-Important
-
-Only complete this section if you are running the workshop on your own. If you are at an AWS hosted event (such as re:Invent, re:Inforce, Immersion Day, etc), go to [Start the workshop at an AWS event](https://catalog.workshops.aws/certificatemanager/en-US/gettingstarted/aws_event/).
-
--   Log into your desired AWS account
+-   登录您想要的 AWS 账户
     
--   Verify that you're in the desired region.
+-   确认您位于所需区域。
     
-    -   Please use a AWS region in which AWS Cloud9, Amazon Elastic Kubernetes Service, and AWS Certificate Manager(ACM) service are [available](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/) 
--   Download the CloudFormation template by right clicking this link: [Security Admin CloudFormation Stack](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloudformation_templates/security_admin.yaml) and save link as _security-admin.yaml_
+    -   请使用 AWS Cloud9、Amazon Elastic Kubernetes Service 和 AWS Certificate Manager (ACM) 服务 [可用](https://aws.amazon.com/about-aws/global-infrastructure/regional-product) 的 AWS 区域 -服务
+-   通过右键单击此链接下载 CloudFormation 模板： [Security Admin CloudFormation Stack](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloudformation_templates/security_admin.yaml) 并将链接另存为 _security-admin.yaml_
     
--   Upload and launch the CloudFormation stack in the AWS account that you are logged into. If you are not familiar with this, follow [instructions here](https://catalog.workshops.aws/certificatemanager/en-US/gettingstarted/self-paced/security_admin_cf_instructions)
+-   在您登录的 AWS 账户中上传并启动 CloudFormation 堆栈。 如果您对此不熟悉，请遵循[此处的说明](https://catalog.workshops.aws/certificatemanager/en-US/gettingstarted/self-paced/security_admin_cf_instructions)
     
-    -   **Note:** the CloudFormation stack may take around 20 minutes to deploy the workshop environment, which includes the infrastructure for the [Internal Application Exercise](https://catalog.workshops.aws/certificatemanager/en-US/httpsexercise) and the [Protecting Data in Transit on EKS](https://catalog.workshops.aws/certificatemanager/en-US/eksexercise) sections
+    -   **注意：** CloudFormation 堆栈可能需要大约 20 分钟来部署研讨会环境，其中包括[内部应用程序练习](https://catalog.workshops.aws/certificatemanager/en-US/httpsexercise) 的基础设施 ) 和 [在 EKS 上保护传输中的数据](https://catalog.workshops.aws/certificatemanager/en-US/eksexercise) 部分
 
-To avoid any permissions issues in your account, make sure that you have administrator access. Also, S3 block public access needs to be disabled for the CRL S3 buckets so that these buckets are accessible by the TLS client.
+为避免您的帐户出现任何权限问题，请确保您具有管理员访问权限。 此外，需要为 CRL S3 存储桶禁用 S3 块公共访问，以便 TLS 客户端可以访问这些存储桶。
 
-
-
-# ...at an AWS event
-
-
-
-### Running the workshop at an AWS Event
-
-
-
-Important
-
-Only complete this section if you are at an AWS hosted event (such as re:Invent, re:Inforce, Immersion Day, or any other event hosted by an AWS employee). If you are running the workshop on your own, go to: [Start the workshop on your own](https://catalog.workshops.aws/certificatemanager/en-US/gettingstarted/self_paced/).
-
-
-
-### Login to AWS Workshop Portal
-
-
-This workshop creates an AWS account and associated resources needed. You will need the **Participant Hash** provided upon entry, and your email address to track your unique session.
-
-Connect to the portal by clicking the button or browsing to [https://dashboard.eventengine.run/](https://dashboard.eventengine.run/) . The following screen shows up.
-
-Enter the provided hash in the text box. The button on the bottom right corner changes to **Accept Terms & Login**. Click on that button to continue. ![Event Engine](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/event_engine/event-engine-initial-screen.png)
-
-Choose either **Email One-Time Password (OTP)** or **Login with Amazon** ![Event Engine Dashboard](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/event_engine/eventenginelogin.png)
-
-Click on **AWS Console** on dashboard. ![Event Engine Dashboard](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/event_engine/event-engine-dashboard.png)
-
-Take the defaults and click on **Open AWS Console**. This will open AWS Console in a new browser tab. ![Event Engine AWS Console](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/event_engine/event-engine-aws-console.png)
-
----
-
-Important
-
-While the above screenshot shows the AWS Region as us-west-2, you should use the Region specified by your AWS workshop facilitator. If they did not specify which Region you should be operating in during this workshop, please ask the nearest AWS workshop facilitator.
-
-
-### Next Steps
-
-Once you have completed the steps above, you can head straight to
-
-[CA Hierarchy Setup](https://catalog.workshops.aws/certificatemanager/en-US/hierarchysetup)
+## 2.CloudFormation步骤
 
 步骤 1:
 
@@ -131,306 +45,493 @@ Once you have completed the steps above, you can head straight to
 ![CF Instructions](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cf_instructions/createstack_step.png)
 
 
+## 3. CA层次结构设计
 
+### 3.1 CA 层次结构设置
 
+### 承担名为**CaAdminRole** 的 IAM 角色
 
-# CA Hierarchy Setup
-
-
-### Assume IAM Role called **CaAdminRole**
-
-
-
--   Assume the role named **CaAdminRole** by using switch role on the AWS console in the AWS account that you are currently logged into
+-   通过在您当前登录的 AWS 帐户中的 AWS 控制台上使用切换角色来承担名为**CaAdminRole** 的角色
     
--   This role has permissions that a Certificate Authority administrator will need for CA administration. As a CA administrator, you will be responsible for creating a root and subordinate certificate authority
+-   此角色具有证书颁发机构管理员进行 CA 管理所需的权限。 作为 CA 管理员，您将负责创建根和从属证书颁发机构
     
--   If you are not familiar with switching roles, follow this tutorial if needed: [Assume Role in Console](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SwitchRole.pdf) 
+-   如果您不熟悉角色切换，请根据需要遵循本教程：[在控制台中担任角色](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SwitchRole.pdf "https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SwitchRole.pdf")
     
 
-Assuming role not working?
 
+### 3.2 创建私有 CA 层次结构
 
-### Create Private CA hierarchy
+-   您可以手动或通过 CloudFormation 模板创建私有根证书和从属证书颁发机构。
+-   请选择手动 _私有 CA 创建_ 或 _快速部署_ 选项，但 _不要两者都做_。
 
+如果您以前从未使用过 AWS Private CA，我们强烈建议您使用手动说明。
 
--   You can create Private Root and Subordinate Certificate Authorities either manually or through CloudFormation template.
--   Please choose the manual _Private CA Creation_ or the _Quick Deploy_ option but _don't do both_.
+### 3.2(a) 手动创建私有 CA 层次结构
 
-We highly recommend that if you've never used AWS Private CA before, you use the manual instructions.
+我们将从创建一个新的 CA 层次结构开始：一个充当信任根的根 CA，以及一个可用于在整个研讨会的其余部分颁发最终实体证书的从属 CA。 您可以找到[在此处创建私有 CA 的视频说明](https://www.youtube.com/watch?v=pKymN_ICpv8 "https://www.youtube.com/watch?v=pKymN_ICpv8")。
 
-[Manual CA Hierarchy Setup](https://catalog.workshops.aws/certificatemanager/en-US/hierarchysetup/manualcahierarchy)
+### 创建根 CA
 
-Want to skip manual creation steps?
-
-Reminder that this path is only recommended if you have experience with AWS Private CA hierarchy creation. You will also be missing learning quizzes if you choose this route. Skipping manual creation will enable you to more quickly move to advanced sections. If you wish to proceed, click here: [CloudFormation deployment of CA hierarchy](https://catalog.workshops.aws/certificatemanager/en-US/hierarchysetup/autocahierarchy)
-
-
-
-
-
-
-
-
-## Manually Create Private CA Hierarchy
-
-
-We'll begin by creating a new CA Hierarchy: a Root CA to act as the root of trust, and a Subordinate CA that can be used to issue end-entity certificates throughout the rest of the workshop. You can find [video instructions to create a private CA here](https://www.youtube.com/watch?v=pKymN_ICpv8) .
-
-
-
-### Create a Root CA
-
-1.  Navigate to AWS Certificate Manager service in the AWS Console
+1.  在 AWS 控制台导航到 AWS Certificate Manager 服务
     
-2.  Expand the sidebar on the left hand side of the console, then click **AWS Private CA**
+2.  展开控制台左侧的边栏，然后单击**AWS Private CA**
     
-3.  Select **Create A Private CA**
+3.  选择**创建私有 CA**
     
 
 ---
 
-![Create Private CA](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/acm_welcome.png)
+![创建私有 CA](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/acm_welcome.png)
 
 ---
 
-4.  We will start by creating a Root CA, so leave **Root** selected under CA type options
+4.  我们将从创建一个根 CA 开始，所以在 CA 类型选项下选择 **Root**
 
 ---
 
-![Root CA Type](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/ca_type.png)
+![根 CA 类型](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/ca_type.png)
 
 ---
 
-5.  For **Subject distinguished name options**, enter values of your choosing. Note that **you must enter at least one name** on this page, but all fields are optional and _not all of them need to be completed._
-    -   We recommend at least entering a Common Name (CN) to easily identify the CA as Root or Subordinate.
+5.  对于**主题专有名称选项**，输入您选择的值。 请注意，**您必须在此页面上至少输入一个姓名**，但所有字段都是可选的，_并非所有字段都需要填写。_
+    -   我们建议至少输入一个通用名称 (CN)，以便轻松地将 CA 识别为根或从属。
 
 ---
 
-![Root CA Parameters](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subject_distinguished_names.png)
+![根 CA 参数](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subject_distinguished_names.png)
 
 ---
 
-6.  Next, scroll down to configure the **Key algorithm options**. This section allows us to select a key algorithm for our CA. For this workshop, we'll use the default: _RSA 2048_.
-    -   Most customers will use RSA 2048, but some customers may choose to use a longer key length (e.g. RSA 4096) for increased security
-    -   Some devices may have limited processing power, and need to utilize Elliptic Curve Cryptography (ECC) certificates: ECC requires less computing power than RSA for cryptographic operations. ECDSA is often used for Internet of Things (IoT) devices.
+6.  接下来，向下滚动以配置**密钥算法选项**。 这部分允许我们为我们的 CA 选择一个密钥算法。 在本次研讨会中，我们将使用默认值：_RSA 2048_。
+    -   大多数客户将使用 RSA 2048，但有些客户可能会选择使用更长的密钥长度（例如 RSA 4096）以提高安全性
+    -   某些设备的处理能力可能有限，需要使用椭圆曲线加密 (ECC) 证书：ECC 需要比 RSA 更少的计算能力来进行加密操作。 ECDSA 通常用于物联网 (IoT) 设备。
 
 ---
 
-![Root CA Key Algo](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/key_algo_options.png)
+![根 CA 密钥算法](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/key_algo_options.png)
 
 ---
 
-7.  Now we need to configure the revocation settings for our new Root CA. Select the checkbox for _Activate CRL Distribution_, and uncheck the _create S3 bucket_ option. Click the _Browse S3_ button and select the S3 bucket that begins with: _acm-private-ca-crl_ from the dropdown menu
-    -   This bucket was pre-created in your account as part of workshop set up
+7.  现在我们需要为我们的新根 CA 配置吊销设置。 选中_激活 CRL 分发_复选框，并取消选中_创建 S3 存储桶_选项。 单击_浏览 S3_ 按钮并从下拉菜单中选择以以下内容开头的 S3 存储桶：_acm-private-ca-crl_
+    -   此存储桶是在您的帐户中预先创建的，作为研讨会设置的一部分
 
 ---
 
-![Root CA Revocation](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cert_revo_options.png)
+![根 CA 撤销](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cert_revo_options.png)
 
 ---
 
-8.  Add tags to identify the CA _(optional)_
+8.  添加标签以标识 CA _（可选）_
     
-9.  Under **CA permissions options** we can authorize ACM to automatically renew certificates issued by this CA. As we will not be issuing certificates directly from the Root CA, we can uncheck this box
-    
-
----
-
-![Root CA ACM Permissions](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/ca_permissions_options.png)
-
----
-
-10.  In the **Pricing** section, check the box to indicate that you agree. Now click **Create CA**
-    
-11.  As a final step, we need to install the CA certificate in our newly created Root CA. On your newly created CA, click the _Actions_ dropdown and select _Install CA Certificate_.
+9.  在**CA 权限选项**下，我们可以授权 ACM 自动续订此 CA 颁发的证书。 由于我们不会直接从根 CA 颁发证书，我们可以取消选中此框
     
 
 ---
 
-![Actions](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/new_ca_actions.png)
+![根 CA ACM 权限](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/ca_permissions_options.png)
 
 ---
 
-12.  Here we can set the validity of the CA certificate, and the signature algorithm. Leave the settings as default, and click **Confirm and Install**.
-
----
-
-![Root CA creation success](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/install_root_ca_cert.png)
-
----
-
-12.  Behind the scenes, AWS Private CA creates a certificate signing request (CSR) using the information we entered in the previous steps.
+10.  在**定价**部分，勾选方框表示您同意。 现在点击 **创建 CA**
     
-13.  That's it! We've created a Root CA that is active and ready to issue certificates. However, AWS strongly recommends against issuing certificates directly with your Root CA. To follow best practice, we will now create a subordinate CA that will be signed by the Root CA we just created.
-    
-
-![Root CA cert review and create](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/root_complete.png)
-
----
-
-[
-
-### Root CA Quiz
-
-
-
--   [Quiz 1](https://bit.ly/2To8mmf) 
--   [Quiz 2](https://bit.ly/2YQr7El) 
-
-
-### Create a Subordinate CA
-
-
-We've created our Root CA, but now we need to create a subordinate CA that can be used to issue certificates (sometimes referred to as an issuing CA).
-
-As the Root CA is the top of our chain of trust, we only want to use it to sign subordinate CAs, to indicate this CA is trusted by our organization. If a subordinate CA is compromised, any end-entity certificates it has issued will also be compromised. But if our Root CA's private key was somehow compromised, that would mean all certificates for our entire organization are now at risk.
-
-We use certificate hierarchies to limit the _impact radius_ of a potential CA compromise. You can find [more information on CA hierarchies in this video](https://www.youtube.com/watch?v=8FB12c1lDyo) .
-
----
-
-Follow the steps below to create a new subordinate CA that we will sign with the Root CA we created in the previous section:
-
----
-
-1.  From the Private CA console, click on the **Create CA** button near the top right of the page
-
----
-
-![Begin Creating Sub CA](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/sub_ca_begin.png)
-
----
-
-2.  This time, select **Subordinate** and continue to configure the **subject distinguished names options**
-
----
-
-![Parent CA Type](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_ca_type.png)
-
----
-
-3.  Enter your desired **Subject distinguished name options**. Note that **you must enter at least one name** on this page, but all fields are optional and _not all of them need to be completed._
-    -   We recommend at least entering a Common Name (CN) to easily identify the CA as Root or Subordinate.
-
----
-
-![Subordinate CA Type](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_ca_parameters.png)
-
----
-
-4.  Under **Key Algorithim Options** use the default, RSA 2048
-    
-5.  Next we need to configure our revocation method, following the same process as the Root CA creation section
+11.  最后一步，我们需要在新创建的根 CA 中安装 CA 证书。 在您新创建的 CA 上，点击 _Actions_ 下拉菜单并选择 _Install CA Certificate_。
     
 
 ---
 
-![Subordinate CA Revocation](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_revocation_options.png)
+![动作](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/new_ca_actions.png)
 
 ---
 
-6.  Add tags to identify the CA _(optional)_
-
-While tags are not mandatory, they can be useful for tracking costs between parts of your organization, or they can be used to facilitate attribute-based access control (ABAC) via IAM policy.
-
-7.  Unlike the Root CA creation section, we will leave _Authorize ACM access to renew certificates requested by this account_ checked for the Subordinate CA. This functionality can greatly reduce operational overhead by offloading certificate renewal processes to ACM vs. performing manual renewals
+12.  这里我们可以设置CA证书的有效期，以及签名算法。 保留默认设置，然后单击**确认并安装**。
 
 ---
 
-![Subordinate CA ACM Permissions](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subord_perms_options.png)
+![根 CA 创建成功](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/install_root_ca_cert.png)
 
 ---
 
-8.  Check the box under the **Pricing** section to indicate we agree. Now click **Create CA**
+12.  在幕后，AWS Private CA 使用我们在前面步骤中输入的信息创建证书签名请求 (CSR)。
+
+13.我们已经创建了一个处于活动状态并准备颁发证书的根 CA。 但是，AWS 强烈建议不要直接使用根 CA 颁发证书。 为了遵循最佳实践，我们现在将创建一个从属 CA，它将由我们刚刚创建的根 CA 签名。
+
+![根 CA 证书审查和创建](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/root_complete.png)
+
+### 创建从属CA
+
+我们已经创建了我们的根 CA，但现在我们需要创建一个可用于颁发证书的从属 CA（有时称为颁发 CA）。
+
+由于根 CA 是我们信任链的顶端，我们只想用它来签署从属 CA，以表明该 CA 受到我们组织的信任。 如果从属 CA 遭到破坏，则它颁发的任何终端实体证书也将受到破坏。 但是，如果我们的根 CA 的私钥以某种方式泄露，这将意味着我们整个组织的所有证书现在都处于危险之中。
+
+我们使用证书层次结构来限制潜在 CA 妥协的_影响半径_。 您可以在本视频中找到[有关 CA 层次结构的更多信息](https://www.youtube.com/watch?v=8FB12c1lDyo "https://www.youtube.com/watch?v=8FB12c1lDyo")。
+
+---
+
+按照以下步骤创建一个新的从属 CA，我们将使用我们在上一节中创建的根 CA 对其进行签名：
+
+---
+
+1.  在私有 CA 控制台中，单击页面右上角附近的**创建 CA** 按钮
+
+---
+
+![开始创建子 CA](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/sub_ca_begin.png)
+
+---
+
+2.  这一次，选择**下属**并继续配置**主题专有名称选项**
+
+---
+
+![父 CA 类型](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_ca_type.png)
+
+---
+
+3.  输入您想要的**主题专有名称选项**。 请注意，**您必须在此页面上至少输入一个姓名**，但所有字段都是可选的，_并非所有字段都需要填写。_
+    -   我们建议至少输入一个通用名称 (CN)，以便轻松地将 CA 识别为根或从属。
+
+---
+
+![从属 CA 类型](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_ca_parameters.png)
+
+---
+
+4.在**密钥算法选项**下使用默认值 RSA 2048
+
+5.接下来我们需要配置我们的撤销方法，遵循与根CA创建部分相同的过程
+
+---
+
+![从属 CA 吊销](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_revocation_options.png)
+
+---
+
+6.  添加标签以标识 CA _（可选）_
+
+虽然标签不是强制性的，但它们可用于跟踪组织各部分之间的成本，或者它们可用于通过 IAM 策略促进基于属性的访问控制 (ABAC)。
+
+7.  与根 CA 创建部分不同，我们将为从属 CA 保留 _授权 ACM 访问以续订此帐户请求的证书_。 通过将证书续订过程卸载到 ACM 与执行手动续订相比，此功能可以大大减少运营开销
+
+---
+
+![从属 CA ACM 权限](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subord_perms_options.png)
+
+---
+
+8.  勾选**定价**部分下的框以表示我们同意。 现在点击 **创建 CA**
     
-9.  We will again need to install a CA certificate. This time, instead of a self-signed Root CA certificate, we will be using the Root CA certificate created in the previous section to sign this new subordinate CA. This will add it to our CA hierarchy and our _chain of trust_.
+9.  我们将再次需要安装 CA 证书。 这一次，我们将使用在上一节中创建的根 CA 证书来签署这个新的从属 CA，而不是自签名根 CA 证书。 这会将其添加到我们的 CA 层次结构和我们的_信任链_。
     
-10.  On the following page, select the _Actions_ dropdown menu and _install CA Certificate_
+10.  在接下来的页面上，选择 _Actions_ 下拉菜单并 _install CA Certificate_
     
 
 ---
 
-![Subordinate Actions](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_actions_install.png)
+![从属行动](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_actions_install.png)
 
 ---
 
-11.  On this page, we need to select _AWS Private CA_ so we can pick the Root CA we created earlier
+11.  在此页面上，我们需要选择 _AWS Private CA_ 以便我们可以选择之前创建的根 CA
 
--   If you wanted to sign this new subordinate CA using a Root or Intermediate CA certificate you host on-premises, you could select _External private CA_
-
----
-
-![Subordinate Cert Parent CA Type](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/install_subordinate_cert.png)
+-   如果您想使用本地托管的根或中间 CA 证书签署这个新的从属 CA，您可以选择 _外部私有 CA_
 
 ---
 
-11.  Now we must select our Root CA as the _parent private CA_ from the dropdown menu. Leave the Validity, algorithm, and path length options on the default settings.
-    -   After you select a CA from the dropdown, the common name will be populated: make sure it matches the common name of the Root CA you created in the previous section
-    -   **Validity** specifies the length of time until the CA certificate expires
-    -   **Path length** indicates the number of certificate authority branches/tiers that can be signed by this CA. For instance, if we were creating a 3-tier CA hierarchy with Root, Intermediate, and Issuing CAs, we would make this path length 1: this would allow this subordinate CA to act as an intermediate CA and sign CAs that are one "tier" below it in the CA hierarchy. You can find more information on [CA hierarchy and path length constraints here](https://docs.aws.amazon.com/acm-pca/latest/userguide/ca-hierarchy.html) .
+![从属证书父 CA 类型](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/install_subordinate_cert.png)
 
 ---
 
-![Subordinate Cert Parent CA Options](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/parent_ca_details.png)
-
-[
-
-## ![Subordinate Cert Validity](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_ca_validity.png)
-
-
-A path length of 1 does **not** mean that only one CA can be signed using the CA certificate. You could sign 5 or more issuing CAs using a CA certificate with a path length of 1, but you could **not** sign another CA below the issuing CA "tier." You can use the path length constraint to prevent other certificate authorities from signing new CAs.
-
-12.  Lastly, we will review our selections and click **Confirm and Install**
+11.  现在我们必须从下拉菜单中选择我们的根 CA 作为 _父私有 CA_。 将有效性、算法和路径长度选项保留为默认设置。
+    -   从下拉列表中选择一个 CA 后，将填充通用名称：确保它与您在上一节中创建的根 CA 的通用名称相匹配
+    -   **有效期** 指定 CA 证书到期前的时间长度
+    -   **路径长度**表示可以由该 CA 签名的证书颁发机构分支/层级的数量。 例如，如果我们要创建一个具有根、中间和颁发 CA 的 3 层 CA 层次结构，我们将使此路径长度为 1：这将允许此从属 CA 充当中间 CA 并签署作为一个“层”的 CA " 在 CA 层次结构中低于它。 您可以在此处找到有关 [CA 层次结构和路径长度限制](https://docs.aws.amazon.com/acm-pca/latest/userguide/ca-hierarchy.html "https://docs.aws.amazon.com/acm-pca/latest/userguide/ca-hierarchy.html") 的更多信息。
 
 ---
 
-13.  Great! We've created a new Subordinate CA and signed it with our Root CA, adding it to our _chain of trust_. You should see (at least) two certificate authorities in the AWS Private CA console, as shown below.
+![从属证书父 CA 选项](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/parent_ca_details.png)
+
+## ![从属证书有效性](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/subordinate_ca_validity.png)
+
+路径长度为 1 不**不**意味着只能使用一个 CA 证书签署一个 CA。 您可以使用路径长度为 1 的 CA 证书签署 5 个或更多的颁发 CA，但您不能**不**签署另一个低于颁发 CA“层级”的 CA。 您可以使用路径长度限制来防止其他证书颁发机构签署新的 CA。
+
+12.最后，我们将检查我们的选择并点击**确认并安装**
 
 ---
 
-![Subordinate CA Creation Complete](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/sub_complete.png)
+13.太棒了！ 我们创建了一个新的从属 CA 并使用我们的根 CA 对其进行了签名，将其添加到我们的_信任链_中。 您应该（至少）在 AWS Private CA 控制台中看到两个证书颁发机构，如下所示。
 
 ---
 
-[
+![从属CA创建完成](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/sub_complete.png)
 
-### Subordinate CA Quiz
+---
 
+###  3.2(b)  快速部署
 
--   [Quiz 3](https://bit.ly/2KqPgcm) 
--   [Quiz 4](https://bit.ly/2YWdJOW) 
+### 自动创建私有 CA 层次结构
 
-[
+重要的
 
-### Overall CA Quiz
+如果您跳过了 _Private CA Creation_ 部分，请仅完成此部分。 **不要同时完成这两项**。
 
--   [Quiz 5](https://bit.ly/2yQ5IML) 
-
-How should I use these quizzes?
-
-[
-
-### Next Steps
-
-
-Once you have completed the steps above, you can head straight to the first exercise:
-
-[Internal App Exercise](https://catalog.workshops.aws/certificatemanager/en-US/httpsexercise)
-
-
-
-# Quick Deploy
-
-
-
-### Automatically Create Private CA Hierarchy
-
-
-Important
-
-Only complete this section if you skipped _Private CA Creation_ section. **Do not complete both**.
-
--   Download and launch the CloudFormation template by right clicking this button [PCA Hierarchy Quick Deploy CloudFormation Stack](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloudformation_templates/pca_hierarchy.yaml) and save link as _pca-hierarchy.yaml_
+-   通过右键单击此按钮 [PCA 层次结构快速部署 CloudFormation 堆栈](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloudformation_templates/security_admin.yaml) 下载并启动 CloudFormation 模板并将链接保存为 _pca-hierarchy.yaml_
     
--   Upload and launch the CloudFormation stack in the AWS account that you are logged into. If you are not familiar with this, follow instructions here: [Deploy CloudFormation Stack Instructions](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/CAAdminSteps-1.pdf)
+-   在您登录的 AWS 账户中上传并启动 CloudFormation 堆栈。 如果您对此不熟悉，请按照此处的说明进行操作：[部署 CloudFormation 堆栈说明](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/CAAdminSteps-1.pdf)
+
+
+## 4. 以PKI管理员身份管理私有CA
+
+## 模块介绍：
+
+在这一部分，我们将重点关注如何使用 AWS Private CA 在 AWS 上安全地管理公钥基础设施 (PKI)。 该模块有两个子部分，重点关注：_CA 监控_ 和 _证书模板。_
+
+---
+
+## 模块组件：
+
+-   **监控私有 CA：** 在本节中，您将学习如何利用 SecurityHub 监控托管在 AWS 中的私有 CA
+-   **使用证书模板：** 研讨会的这一部分将演示如何将证书模板用于最终实体证书，包括创建自定义模板
+
+### 4.1 监控AWS私有CA
+
+#### 安全监控：
+
+![图片](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/architecture.png)
+
+在本节中，我们将了解如何在构建证书管理基础结构时监控特权操作。 我们将研究两个场景。 _CA 证书的创建_ 和 _最终实体证书的大规模撤销_ 。
+
+#### 场景 1：使用 Security Hub 进行监控
+
+##### 承担名为**CaAdminRole** 的 IAM 角色
+
+-   通过在您当前登录的 AWS 帐户中的 AWS 控制台上使用切换角色，代入名为**CaAdminRole** 的角色。
+    
+-   此角色使 CA 管理员能够审查 Security Hub 中的发现。
+    
+
+如何切换角色？
+
+##### 场景一说明
+
+-   创建 CA 证书是一项特权操作，只能由 CA Hierarchy Management 团队中的授权人员执行。 出于这个原因，我们希望在我们的层次结构中监控任何 CA 证书的创建。
+
+1.  导航到 Security Hub 控制台并选择页面左侧的“调查结果”。
+
+---
+
+![安全中心调查结果](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/securityhubfindings.png)
+
+---
+
+2.  按标题过滤 IS 证书颁发机构创建
+
+---
+
+![安全中心过滤](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/securityhubfilter.png)
+
+---
+
+3.  通过选中复选框选择一项调查结果。 单击标题链接。 转到“证书颁发机构创建”下的右上角页面，然后选择查找 ID 链接。
+
+---
+
+![Security Hub 查找 ID](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/securityhubfindingid.png)
+
+---
+
+4.  向下滚动到资源 > 详细信息 > 其他。 请参阅资源 ID。 这是创建的证书颁发机构 ARN，它创建了此 Security Hub 结果。
+
+---
+
+![安全中心 json](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/securityhubfindingjson.png)
+
+---
+
+#### 场景 2：监控批量撤销
+
+##### 承担名为**AppDevRole** 的 IAM 角色
+
+-   通过在您当前登录的 AWS 帐户中的 AWS 控制台上使用切换角色来承担名为**AppDevRole** 的角色。
+    
+-   此角色使应用程序开发人员能够为其应用程序创建和撤销证书。
+    
+
+如何切换角色？
+
+##### 场景2说明
+
+-   此场景显示开发人员在短时间内吊销了许多终端实体证书。 如果发生此类特权操作，我们希望监控并通知安全团队以进行调查。
+
+1.导航到Cloud9并打开IDE
+
+---
+
+![Cloud 9 控制台](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9open.png)
+
+---
+
+2.  打开 data-protection/usecase-9 下的**usecase-9 文件夹**。 右键单击 usecase-9 文件夹下的**environment-setup.sh**。 选择运行。
+
+-   此脚本大约需要一分钟才能完成
+-   确保您运行的是正确的**environment-setup.sh** 脚本。 它位于此处：`/home/ec2-user/environment/data-protection/usecase-9/environment-setup.sh`
+-   该脚本会为研讨会的这一部分安装各种工具和包，请参阅脚本中的注释以获取更多信息
+-   当您看到**环境设置完成**时，脚本已完成，可以在文件`setup.log` 中找到其他日志信息
+
+---
+
+![设置环境](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9environmentsetup.png) ![环境成功](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9environmentoutput.png)
+
+---
+
+3.  打开 data-protection/usecase-9/code 下的 **code** 文件夹。 双击 code 文件夹下的 **create-certs.py** 文件。 选择运行。 等待几秒钟，直到您看到打印了五个证书。 此脚本使用我们在第一个模块中创建的从属 CA 创建五个私有证书。 请随意阅读代码以更好地理解所使用的 API。
+
+---
+
+![创建证书](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9createcerts.png)
+
+---
+
+4.  导航回您的 AWS 控制台（在下一步的单独选项卡中保持 Cloud9 打开）。 转到证书管理器控制台。 您应该看到通过您刚刚作为 Application Developer 角色运行的脚本生成的所有证书。
+
+---
+
+![检查创建的证书](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9certs.png)
+
+---
+
+5.  导航回 Cloud9。 在**data-protection/usecase-9/code**下，双击**revoke-certs.py**打开。 然后运行脚本来撤销我们刚刚创建的所有证书。
+
+---
+
+![撤销证书](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9revoke.png)
+
+---
+
+6.  完成此[测验](https://amazonmr.au1.qualtrics.com/jfe/form/SV_3mHHKwvVlxQ0v1X "https://amazonmr.au1.qualtrics.com/jfe/form/SV_3mHHKwvVlxQ0v1X")
+
+#### 监控证书吊销
+
+-   我们将以 CA 管理员身份导航到 Security Hub，以监控证书的吊销。 请记住，我们现在正在从应用程序开发人员角色（和相关角色）切换到执行监控的 CA 管理员角色。
+
+##### 承担名为**CaAdminRole** 的 IAM 角色
+
+-   通过在您当前登录的 AWS 帐户中的 AWS 控制台上使用切换角色，代入名为**CaAdminRole** 的角色。
+    
+-   此角色使 CA 管理员能够审查 Security Hub 中的发现。
+    
+
+如何切换角色？
+
+##### 吊销监控说明
+
+1.  导航到 Security Hub 控制台并选择页面左侧的“调查结果”。
+
+---
+
+![安全中心调查结果](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/securityhubfindings.png)
+
+---
+
+2.  您应该在列表顶部看到五个 _Certificate Revocation_ 结果。 如果不这样做，您可以搜索 Title IS Certificate Revocation。
+
+---
+
+![安全中心调查结果](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9certrevocationsecurityhub.png)
+
+---
+
+您现在已经成功地完成了应用程序开发人员创建和撤销从属 CA 的私有证书的操作以及监视此类操作的 CA 管理员的操作。
+
+
+## 4.2 证书模板
+
+## 概述
+
+这一部分，我们将了解证书扩展，这些扩展可以帮助您将证书用于应用程序，而不是识别 TLS 服务器端点的普遍情况。 这些包括：
+
+-   代码签名
+-   签署在线证书状态协议 (OCSP) 响应
+-   ADCS证书
+
+---
+
+使一个证书对签署代码有用而另一个对终止 TLS 有用的证书是证书中的各种字段和扩展。 扩展字段，或简称为扩展，定义了证书的用途。 RFC 5280 中定义了一些常用和广泛支持的扩展，包括：
+
+-   基本约束
+-   关键用法
+-   扩展密钥使用
+
+---
+
+AWS Private CA 在使用四种模板生成各种证书方面提供了完全的灵活性：
+
+-   基本模板
+-   CSRPassthrough模板
+-   APIPassthrough模板
+-   APICSRPassthrough模板
+
+---
+
+这一部分，您将了解如何使用可用的不同模板类型来颁发不同的证书类型。
+
+### 承担名为**AppDevRole** 的 IAM 角色
+
+-   通过在您当前登录的 AWS 帐户中的 AWS 控制台上使用切换角色来承担名为**AppDevRole** 的角色。
+    
+-   此角色使应用程序开发人员能够为其应用程序创建和撤销证书。
+    
+
+如何切换角色？ 如果您不熟悉角色切换，请根据需要遵循本教程：[在控制台中担任角色](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SwitchRole.pdf)
+
+### 练习 1 - 默认模板：
+
+-   在本练习中，您将使用 AWS Private CA 提供的预建模板创建代码签名证书。
+
+1.导航到Cloud9并打开IDE
+
+---
+
+![Cloud 9 控制台](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9open.png)
+
+---
+
+2.  打开 data-protection/usecase-9 下的**usecase-9 文件夹**。 右键单击 usecase-9 文件夹下的**environment-setup.sh**。 选择运行。
+
+-   此脚本大约需要一分钟才能完成
+-   确保您运行的是正确的**environment-setup.sh** 脚本。 它位于此处：`/home/ec2-user/environment/data-protection/usecase-9/environment-setup.sh`
+-   该脚本会为研讨会的这一部分安装各种工具和包，请参阅脚本中的注释以获取更多信息
+-   当您看到**环境设置完成**时，脚本已完成，可以在文件`setup.log` 中找到其他日志信息
+
+---
+
+![设置环境](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9environmentsetup.png) ![环境成功](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9environmentoutput.png)
+
+---
+
+3.  打开 **templates.py** data-protection/usecase-9/templates 目录。 运行脚本。 大约 2 分钟后，您应该会看到_成功创建代码签名证书 codesigning_cert.pem_。
+
+---
+
+![模板运行](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/certtemplaterun.png)
+
+---
+
+4.  打开新终端。
+
+---
+
+![模板运行](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/certtemplateopenterm.png)
+
+---
+
+5.  通过 `cd data-protection/usecase-9/templates` 将目录更改为模板文件夹。 然后运行以下命令创建代码签名证书，`openssl x509 -in codesigning_cert.pem -text -noout`。 您应该看到证书内容的输出。
+
+---
+
+![模板运行](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/certtemplatecodesigning.png)
+
+
+
+
+
+### 其他案例
