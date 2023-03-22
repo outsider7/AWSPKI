@@ -534,4 +534,8 @@ AWS Private CA 在使用四种模板生成各种证书方面提供了完全的�
 
 
 
-### 其他案例
+### 更多案例
+
+[IoT设备使用案例 ](https://github.com/outsider7/AWSPKI/blob/main/PrivateCA/IOT_Device_Usecase.md)
+
+[HTTPS应用使用案例 ](https://github.com/outsider7/AWSPKI/blob/main/PrivateCA/HTTPS_Application_Usecase.md)
