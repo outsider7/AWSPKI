@@ -1,3 +1,4 @@
+# 部署 Microsoft PKI
 
 该文档基于以下文档进行汉化
 https://aws-quickstart.github.io/quickstart-microsoft-pki/ 
@@ -188,7 +189,7 @@ https://aws-quickstart.github.io/quickstart-microsoft-pki/
 
 1. 登录您的 AWS 账户，然后选择以下选项之一启动 AWS CloudFormation 模板。 如需有关选择选项的帮助，请参阅本指南前面的[部署选项](https://aws-quickstart.github.io/quickstart-microsoft-pki/#_deployment_options)。
     
-| [Deploy Microsoft PKI into a new VPC on AWS](https://fwd.aws/V4P9Q)       | [View template](https://fwd.aws/aa5WK) | 登陆远程桌面需要 RD Host>0 ,RDP与SubCA一个AZ   |
+| [Deploy Microsoft PKI into a new VPC on AWS](https://fwd.aws/V4P9Q)       | [View template](https://fwd.aws/aa5WK) | 登陆远程桌面需要 RD Host>0 ,RDP与SubCA一个AZ，保证RDP可以公网访问   |
 | ------------------------------------------------------------------------- | -------------------------------------- | --- |
 | [Deploy Microsoft PKI into an existing VPC on AWS](https://fwd.aws/vgDqv) | [View template](https://fwd.aws/Axdrp) |     |
 
@@ -233,12 +234,13 @@ https://aws-quickstart.github.io/quickstart-microsoft-pki/
 
 ### 测试部署
 
-1. 通过RDP连接到RD Gateway，然后通过RDP连接到二级CA。
+1. 通过RDP连接到RD Gateway，然后通过RDP连接到二级CA的IP地址，输入自定义的域账号名和密码。
     
 2. 导航至 [http://<subordinate](http://%3Csubordinate/) CA FQDN>/certsrv
+在该QuickStart文档中，并不会配置Web Enrollment，如果需要网页版签发证书，请在Server Manager的“manage”处安装Certification Enrollment Web Service和其他相关的设置。在IIS的Server Certificates处您也可以进行签发证书、导出证书等操作。另外您也可以利用mmc的Add Snap-ins定制化证书管理界面。
     
 3. 颁发测试证书
-![[Pasted image 20230313010931.png]]
+
 ## 在 AWS 上使用 Microsoft PKI 的最佳实践
 
 此快速入门将相关文件夹和文件（与证书服务相关的文件夹和文件）迁移到 Amazon Elastic Block Store (Amazon EBS) 卷 [D:\]。 备份 Microsoft PKI 部署，包括私钥和当前证书数据库。
