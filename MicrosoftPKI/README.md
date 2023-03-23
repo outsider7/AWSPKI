@@ -236,8 +236,8 @@ https://aws-quickstart.github.io/quickstart-microsoft-pki/
 
 1. 通过RDP连接到RD Gateway，然后通过RDP连接到二级CA的IP地址，输入自定义的域账号名和密码。
     
-2. 导航至 [http://<subordinate](http://%3Csubordinate/) CA FQDN>/certsrv
-在该QuickStart文档中，并不会配置Web Enrollment，如果需要网页版签发证书，请在Server Manager的“manage”处安装Certification Enrollment Web Service和其他相关的设置。在IIS的Server Certificates处您也可以进行签发证书、导出证书等操作。另外您也可以利用mmc的Add Snap-ins定制化证书管理界面。
+2. 导航至 http://<subordinate CA FQDN>/certsrv
+注意：在该QuickStart文档中，并不会配置Web Enrollment，如果需要网页版签发证书，请在Server Manager的“manage”处安装Certification Enrollment Web Service和其他相关的设置。在IIS的Server Certificates处您也可以进行签发证书、导出证书等操作。另外您也可以利用mmc的Add Snap-ins定制化证书管理界面。
     
 3. 颁发测试证书
 
