@@ -168,6 +168,8 @@
 
 我们使用证书层次结构来限制潜在CA 折中的 _影响半径_ 。 您可以在本视频中找到[有关 CA 层次结构的更多信息](https://www.youtube.com/watch?v=8FB12c1lDyo "https://www.youtube.com/watch?v=8FB12c1lDyo")。
 
+![从属证书层次结构](https://github.com/outsider7/AWSPKI/tree/main/PrivateCA/img/PrivateCA/img/CAHierarchy.png)
+
 ---
 
 按照以下步骤创建一个新的从属 CA，我们将使用我们在上一节中创建的根 CA 对其进行签名：
