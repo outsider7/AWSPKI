@@ -82,7 +82,7 @@
 
 **将 CloudHSM 集群集成到 Windows Server AD CS**
 
-打开脚本 09_PKI_AWS_CloudHSM-Windows_CA-Integration-Playbook.txt 并按照说明完成 CloudHSM 与 Windows 服务器的集成。
+打开脚本 08_PKI_AWS_CloudHSM-Windows_CA-Integration-Playbook.ps1 并按照说明完成 CloudHSM 与 Windows 服务器的集成。
 
 
 ### 参考文档
