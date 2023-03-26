@@ -277,7 +277,7 @@
 
 如果您跳过了 _Private CA Creation_ 部分，请仅完成此部分。 **不要同时完成这两项**。
 
--   通过右键单击此按钮 [PCA 层次结构快速部署 CloudFormation 堆栈](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloudformation_templates/security_admin.yaml) 下载并启动 CloudFormation 模板并将链接保存为 _pca-hierarchy.yaml_
+-   通过右键单击此按钮 [PCA 层次结构快速部署 CloudFormation 堆栈](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloudformation_templates/pca_hierarchy.yaml) 下载并启动 CloudFormation 模板并将链接保存为 _pca-hierarchy.yaml_. 参见模版代码 [PCA CloudFormation 堆栈](https://github.com/outsider7/AWSPKI/blob/main/PrivateCA/code/pca_hierarchy.yaml) 
     
 -   在您登录的 AWS 账户中上传并启动 CloudFormation 堆栈。 如果您对此不熟悉，请按照此处的说明进行操作：[部署 CloudFormation 堆栈说明](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/CAAdminSteps-1.pdf)
 
@@ -495,6 +495,8 @@ AWS Private CA 在使用四种模板生成各种证书方面提供了完全的�
 ---
 
 ![Cloud 9 控制台](https://static.us-east-1.prod.workshops.aws/public/10d11255-d416-4508-927a-fad987ae5992/static/cloud9open.png)
+
+该部分代码请参见github repo：   [代码部分](https://github.com/aws-samples/data-protection/tree/master/usecase-9)
 
 ---
 

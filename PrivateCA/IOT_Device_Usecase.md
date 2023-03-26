@@ -1,168 +1,167 @@
-## IOT device certificates :
+## 物联网设备证书：
 
-If you are building IOT applications where client devices need to validate their identity to central control servers, you could use AWS IOT core or your own control server that your organization has built. In this section of the workshop, we will go through a hands on exercise showing you how you get client device certificates and deploy them to an IOT device simulator and also how the AWS IOT core validates these device certificates to establish a successful TLS connection.
+如果您正在构建客户端设备需要向中央控制服务器验证其身份的 IOT 应用程序，您可以使用 AWS IOT Core 或您的组织构建的您自己的控制服务器。 在研讨会的这一部分，我们将通过动手练习向您展示如何获取客户端设备证书并将它们部署到 IOT 设备模拟器，以及 AWS IOT Core 如何验证这些设备证书以建立成功的 TLS 连接。
 
-### 0. Create the base template
+### 0.创建基础模板
 
-Run the CF template stack template-security-admin.yaml in your AWS account.
+在您的 AWS 账户中运行 CF 模板堆栈 template-security-admin.yaml。
 
-### 1. An IAM Role called **IOTDevRole** is the role that an IOT developer would assume. 
+### 1. 一个名为 **IOTDevRole** 的 IAM 角色是 IOT 开发人员将担任的角色。
 
-* Assume the role named **IOTDevRole** by using switch role on the AWS console in the AWS account that you are currently logged into
+* 通过在您当前登录的 AWS 帐户中的 AWS 控制台上使用 switch 角色来承担名为 **IOTDevRole** 的角色
 
-* This role has permissions that an IOT developer will need for building the necessary resources for IOT device certificate authentication use case.
+* 此角色拥有 IOT 开发人员构建 IOT 设备证书身份验证用例所需资源所需的权限。
 
-* If you are not familiar with switching roles, follow this tutorial if needed: Right click on [Assume Role in Console](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SwitchRole.pdf)
+* 如果您不熟悉角色切换，请根据需要遵循本教程：右键单击 [在控制台中承担角色](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SwitchRole.pdf)
 
-#### 2. Build the infrastructure needed for the IOT usecase by deploying the cloudformation template below
+#### 2. 通过部署下面的 cloudformation 模板构建物联网用例所需的基础设施
 
-Please download the CF template by right clicking and save link as the filename *template-iot-dev.yaml* [IOT Developer Cloudformation Stack](https://raw.githubusercontent.com/aws-samples/data-protection/master/usecase-9/cf-templates/template-iot-dev.yaml) by right clicking and saving the yaml file on your laptop. 
+请通过右键单击下载 CF 模板并将链接另存为文件名 *template-iot-dev.yaml* [IOT Developer Cloudformation Stack](https://raw.githubusercontent.com/aws-samples/data-protection/master/usecase-9/cf-templates/template-iot-dev.yaml) 通过右键单击并将 yaml 文件保存在笔记本电脑上。
 
-Upload and launch the cloudformation stack in your AWS account. If you are not familiar with this, follow instructions here by right clicking and opening link in a new browser tab [Deploy IOT Developer Cloudformation Stack Instructions](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/IoTStackSteps.pdf)
-This cloudformation deployment takes about 2 minutes to complete.
+在您的 AWS 账户中上传并启动 cloudformation 堆栈。 如果您对此不熟悉，请按照此处的说明进行操作，方法是右键单击并在新的浏览器选项卡中打开链接 [部署 IOT 开发人员 Cloudformation 堆栈说明](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/IoTStackSteps.pdf)
+此 cloudformation 部署大约需要 2 分钟才能完成。
 
-#### 3. For the next section, you need a Cloud9 IDE environment setup for executing code. PLease follow the instructions below :
+#### 3. 对于下一部分，您需要一个 Cloud9 IDE 环境设置来执行代码。 请按照以下说明进行操作：
 
-* Navigate to the Cloud9 service within your AWS console
-* Open the Cloud9 IDE environment called **IOT usecase environment**. It takes about 30 seconds for the environment to start up.
-* In the Cloud9 IDE environment you will find a folder called **usecase-9** in the folder pane on the left side of the screen
-* Delete that folder
+* 在您的 AWS 控制台中导航到 Cloud9 服务
+* 打开名为 **IOT 用例环境** 的 Cloud9 IDE 环境。 环境启动大约需要 30 秒。
+* 在 Cloud9 IDE 环境中，您会在屏幕左侧的文件夹窗格中找到一个名为 **usecase-9** 的文件夹
+* 删除那个文件夹
 
-Within your Cloud9 environment open the **usecase-9** directory
+在您的 Cloud9 环境中打开 **usecase-9** 目录
 
-* Right-click (on MacOS: control-click) the file named **environment-setup.sh** in the IDE and select Run
-* This script takes about a minute to complete
-* The script installs various tools and packages for this section of the workshop, see the comments in the script for more information
-* The script is finished when you see **environment setup complete**, additional log info can be found in the file `setup.log`
+* 在 IDE 中右键单击（在 MacOS 上：按住 control 单击）名为 **environment-setup.sh** 的文件，然后选择运行
+* 这个脚本大约需要一分钟才能完成
+* 该脚本为研讨会的这一部分安装了各种工具和包，请参阅脚本中的注释以获取更多信息
+* 当您看到**环境设置完成**时，脚本已完成，可以在文件 `setup.log` 中找到其他日志信息
 
-#### 4. Create the verification certificate and get it signed by the Subordinate CA that you had created earlier
+#### 4. 创建验证证书并由您之前创建的从属 CA 签名
 
-The verification certificate is needed because that's the mechanism that the AWS IOT core uses to ascertain that you have access to the  Subordinate CA for signing an end entity certificate. There is also a registration code that's needed in the process and this code is used by the AWS IOT core to ascertain that the principal creating and uploading the verification certificate operation has permissions to access to the IOT Core within the AWS console.
+验证证书是必需的，因为这是 AWS IOT 核心用来确定您有权访问从属 CA 以签署最终实体证书的机制。 在此过程中还需要一个注册码，AWS IOT Core 使用此代码来确定创建和上传验证证书操作的主体是否有权访问 AWS 控制台中的 IOT Core。
 
-In the Cloud9 environment :
+在 Cloud9 环境中：
 
-Open a bash terminal. 
+打开一个 bash 终端。
 
-Change directory to /home/ec2-user/environment by using the following command :
+使用以下命令将目录更改为 /home/ec2-user/environment ：
 
 ```
 cd /home/ec2-user/environment/data-protection/usecase-9
 ```
 
 
-Generate a RSA 2048 key pair using the command below. A file verification_cert.key will be created.
+使用以下命令生成 RSA 2048 密钥对。 将创建文件 verification_cert.key。
 
 ```
 openssl genrsa -out verification_cert.key 2048
 ```
 
-Each AWS account has a unique IOT registration code. As part of the verification process, the common name of the CSR(Certificate signing request) must be set to the registration code.
+每个 AWS 账户都有一个唯一的 IOT 注册码。 作为验证过程的一部分，CSR（证书签名请求）的通用名称必须设置为注册码。
 
-Let's get the registration code from IOT core to put into the Common name for the CSR. Copy the registration code to your clipboard.
+让我们从 IOT Core 获取注册码以放入 CSR 的通用名称中。 将注册码复制到剪贴板。
 
 ```
 aws iot get-registration-code
 ```
 
-We will now generate the verification certificate signing request(CSR). Fill in values at the prompt and when prompted for `Common name` enter the registration code(without quotes) as returned by the above command. For other parameters choose anything you like. Don't put anything for the challenge password or optional company name, just press enter two times and it should be good.
+我们现在将生成验证证书签名请求 (CSR)。 在提示符处填写值，并在提示输入“Common name”时输入上述命令返回的注册码（不带引号）。 对于其他参数，选择任何你喜欢的。 不要为挑战密码或可选的公司名称输入任何内容，只需按两次 enter 就可以了。
 
 ```
 openssl req -new -key verification_cert.key -out verification_cert.csr
 ```
 
-You should see the file verification_cert.csr generated.
+您应该会看到生成的文件 verification_cert.csr。
 
-The verification_cert.csr will be now signed by the subordinate CA that you created earlier and the certificate content is put into a .pem file
+verification_cert.csr 现在将由您之前创建的从属 CA 签名，证书内容将放入 .pem 文件中
 
-Run the script `verification-cert.sh` using the command below :
+使用以下命令运行脚本“verification-cert.sh”：
 
 ```
 bash verification-cert.sh
 ```
 
-This script will issue the verification certificate and also get the subordinate CA certificate from ACM PCA and upload it to the S3 bucket named `certificate-holder-<your-account-number>`. The bucket would be in the region that you are currently operating in.
+此脚本将颁发验证证书，并从 ACM PCA 获取从属 CA 证书并将其上传到名为“certificate-holder-<your-account-number>”的 S3 存储桶。 该存储桶将位于您当前运营所在的区域。
 
-At this point the AWS IOT core service has determined that you have the necessary permissions to sign a device certificate using the subordinate CA in your account.
+此时，AWS IOT 核心服务已确定您拥有使用您账户中的从属 CA 签署设备证书的必要权限。
 
-#### 5. Download the subordinate CA certificate and verification certificate from the S3 bucket into your laptop
+####  5.从S3 bucket下载从属CA证书和验证证书到你的笔记本
 
-Follow the instructions here :
+按照此处的说明进行操作：
 
-Right click and open [Download Verification cert and subordinate CA cert](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/DownloadCAVerificationCert.pdf)
+右键打开[下载验证证书和从属CA证书](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/DownloadCAVerificationCert.pdf)
 
 
-#### 6. Register the CA by uploading Subordinate CA certificate and Verification certificate to IOT core on the AWS console
+#### 6.通过在AWS控制台上传从属CA证书和验证证书到IOT Core来注册CA
 
-Follow the instructions here :
+按照此处的说明进行操作：
 
-Right click and open [Register a CA ](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/UploadVeriCertSubordinateCAIOTCore.pdf)
+右击打开[注册CA](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/UploadVeriCertSubordinateCAIOTCore.pdf)
 
-Now the IOT core is loaded with the subordinate CA certificate. This means that any device certificate that's signed by the Subordinate CA can be trusted and validated by the IOT core.
+现在 IOT 核心加载了从属 CA 证书。 这意味着任何由从属 CA 签署的设备证书都可以被 IOT 核心信任和验证。
 
-#### 7. Let's create a device certificate in the Cloud9 environment
+#### 7.让我们在Cloud9环境中创建一个设备证书
 
-In this step you will create a device certificate that you will then associate with an IOT thing. Within the Cloud9 environment, open a terminal and execute the following commands to create a RSA key pair for the IOT device:
+在此步骤中，您将创建一个设备证书，然后将其与 IOT 事物相关联。 在 Cloud9 环境中，打开终端并执行以下命令为 IOT 设备创建 RSA 密钥对：
 
 ```
 openssl genrsa -out device_cert.key 2048
 ```
 
-Let's generate the CSR for the IOT device. For the CSR Parameters, you can put "iotdevice1" for Common name but for all other parameters its your choice. Don't set anything for the challenge password and the optional company name. Just press enter for those parameters. Use the following command to generate the CSR(Certificate signing request)
+让我们为 IOT 设备生成 CSR。 对于 CSR 参数，您可以将“iotdevice1”作为通用名称，但对于所有其他参数，您可以自行选择。 不要为挑战密码和可选的公司名称设置任何内容。 只需按回车键输入这些参数。 使用以下命令生成 CSR（证书签名请求）
 
 ```
 openssl req -new -key device_cert.key -out device_cert.csr
 ```
 
-Run the script `device-cert.sh` which will issue the device certificate and get it signed by the subordinate CA that you created earlier and upload it to the S3 bucket named `certificate-holder-<your-account-number>`. You can use the command below :
+运行脚本“device-cert.sh”，它会颁发设备证书，并由您之前创建的从属 CA 对其进行签名，并将其上传到名为“certificate-holder-<your-account-number>”的 S3 存储桶中。 您可以使用以下命令：
 
 ```
 bash device-cert.sh
 ```
 
-#### 8. Download the device certificate from S3 back to the Cloud9 environment
+#### 8.从S3下载设备证书回Cloud9环境
 
-Go to the S3 console and follow the instructions below :
+转到 S3 控制台并按照以下说明操作：
 
-Right click and open [Download the device cert from S3](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/DownloadDeviceCert.pdf)
+右键单击并打开  [从 S3 下载设备证书](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/DownloadDeviceCert.pdf) 
 
-#### 9. Create the IOT Policy that provides permissions for publishing and subscribing to a IOT topic
+#### 9. 创建提供发布和订阅 IOT 主题权限的 IOT Policy
 
-The IOT policy attached to a thing or a device provides permissions to a device or a thing for topics the IOT thing can publish and subscribe to. The policy also provides the ability to add a name to the thing that connects to the IOT core.
+附加到事物或设备的 IOT 策略为设备或事物提供 IOT 事物可以发布和订阅的主题的权限。 该策略还提供了为连接到 IOT 核心的事物添加名称的能力。
 
-Follow the instructions here :
+按照此处的说明进行操作：
 
-Right click and open [Create IOT policy](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/CreateIOTPolicy.pdf)
+右键单击并打开【创建 IOT 策略】(https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/CreateIOTPolicy.pdf)
 
-You have now created a policy called `alexa_temperature_policy` . This policy will allow a IOT device to publish to a topic named 'alexa/temperature'. For example think of a IOT device recording temperature and is publishing to this IOT topic called `alexa/temperature`. You will attach the policy to a IOT thing in later steps.
+您现在已经创建了一个名为 `alexa_temperature_policy` 的策略。 此策略将允许 IOT 设备发布到名为“alexa/temperature”的主题。 例如，考虑一个 IOT 设备记录温度并发布到这个名为“alexa/temperature”的 IOT 主题。 您将在后续步骤中将该策略附加到 IOT 事物。
 
-#### 10. Register the device certificate and create a thing within the IOT core service
+#### 10.注册设备证书并在IOT核心服务内创建一个东西
 
-Follow the instructions here :
+按照此处的说明进行操作：
 
-Right click and open [Create and register a IOT thing](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/RegisterAThing.pdf)
+右键单击并打开 [Create and register a IOT thing](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/RegisterAThing.pdf)
 
-#### 11. Configuring the MQTT(Standard for IOT Messaing) Client 
+#### 11.配置MQTT（物联网消息传递标准）客户端
 
-We will be using a MQTT client to simulate a IOT device. An MQTT cliens has been pre-installed in your Cloud9 environment. The mqtt client needs to communicate with the IOT core endpoint and the various certificates and keys required for a mutual TLS connection between the mqtt client and the AWS IOT core endpoint have been configured within the config.properties mqq configuration file.
+我们将使用 MQTT 客户端来模拟物联网设备。 您的 Cloud9 环境中已预安装 MQTT 客户端。 mqtt 客户端需要与 IOT 核心端点通信，并且 mqtt 客户端和 AWS IOT 核心端点之间相互 TLS 连接所需的各种证书和密钥已在 config.properties mqq 配置文件中配置。
 
-Open the mqtt configuration file from a bash terminal in your Cloud9 environment:
+在 Cloud9 环境中从 bash 终端打开 mqtt 配置文件：
 ```
-c9 open /home/ec2-user/.mqtt-cli/config.properties 
+c9 open /home/ec2-user/.mqtt-cli/config.properties
 ```
 
-In a bash terminal withiny our Cloud9 environment, use the following cli command in the terminal to get the mqtt endpoint URL or mqtt host
+在我们的 Cloud9 环境中的 bash 终端中，在终端中使用以下 cli 命令获取 mqtt 端点 URL 或 mqtt 主机
 ```
 aws iot describe-endpoint --endpoint-type iot:Data-ATS
 ```
-The output will be in this format 
+输出将采用这种格式
 
-{
-    "endpointAddress": "b12qfcnz2tnjiu-ats.iot.us-east-1.amazonaws.com"
-}
+{ "endpointAddress": "b12qfcnz2tnjiu-ats.iot.us-east-1.amazonaws.com" }
 
-Copy the value of the parameter endpointAddress into the value of mqtt.host in the config.properties file.
 
-Also change the other properties to the values shown below. Don't forget to save the file.
+将参数 endpointAddress 的值复制到 config.properties 文件中的 mqtt.host 的值中。
+
+还将其他属性更改为如下所示的值。 不要忘记保存文件。
 
 ```
 mqtt.port=8883
@@ -171,43 +170,43 @@ mqtt.version=3
 client.id.prefix=mydevice
 ```
 
-#### 12. Pub sub exercise where we can see messages flowing between the device simulator and the IOT core topic over a HTTPS connection.
+#### 12. Pub sub 练习，我们可以看到消息通过 HTTPS 连接在设备模拟器和 IOT 核心主题之间流动。
 
-Navigate to the AWS IOT core service in a browser tab and follow the instructions below :
+在浏览器选项卡中导航到 AWS IOT 核心服务，然后按照以下说明操作：
 
-Right click and open [Subscribe to a IOT topic](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SubscribeIOTTopic.pdf)
+右键单击并打开[订阅 IOT 主题](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SubscribeIOTTopic.pdf)
 
-**Publishing from MQTT Client to IOT core:**
+**从 MQTT 客户端发布到 IOT 核心：**
 
-Open the mqtt shell by typing the following command :
+通过键入以下命令打开 mqtt shell：
 ```
 mqtt shell
 ```
-Publishing from MQTT client to IOT core
+从 MQTT 客户端发布到 IOT Core
 
-Connect to IOT core using the following command and then publish the Hello message using the pub command. Press enter after each command :
+使用以下命令连接到 IOT 核心，然后使用 pub 命令发布 Hello 消息。 在每个命令后按回车键：
 ```
 con -i mydevice
 
 pub -t alexa/temperature -m Hello 
 
 ```
-Follow instructions here to see the message sfomr the MQTT Client published to the IOT core:
+按照此处的说明查看 MQTT 客户端发布到 IOT 核心的消息：
 
-Right click and open [See the IOT device message published](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SeeIOTDevicePublishedMessage.pdf)
+右键打开[查看IOT设备消息发布](https://github.com/aws-samples/data-protection/blob/master/usecase-9/img/SeeIOTDevicePublishedMessage.pdf)
 
 ```
 type **disconnect** and press enter to Disconnect from the IOT core connection
 
 type exit and press enter to exit out of the MQTT shell
 ```
-**Publishing from IOT core to the MQTT Client:**
+**从 IOT 核心发布到 MQTT 客户端：**
 
-Open the mqtt shell by typing the following command :
+通过键入以下命令打开 mqtt shell：
 ```
 mqtt shell
 ```
-Connect to IOT core using the following command :
+使用以下命令连接到 IOT 核心：
 ```
 con -i mydevice
 
@@ -215,12 +214,6 @@ subscribe to the topic monthly_average_temperature by executing the following co
 
 sub -q 1 -t cloud/monthly_average_temperature -s -oc
 ```
-From the IOT Core console, publish to the topic cloud/monthly_average_temperature 
+从 IOT Core 控制台，发布到主题 cloud/monthly_average_temperature
 
-You should see the message "Hello from the IOT console" on the mqtt client within your Cloud9 environment
-
-####Quiz:####
-
-For re:inforced learning on this topic please take this quiz : [IOT Quiz](https://amazonmr.au1.qualtrics.com/jfe/form/SV_cCiyT40de2DRUHQ)
-
-
+您应该在 Cloud9 环境中的 mqtt 客户端上看到消息“Hello from the IOT console”
