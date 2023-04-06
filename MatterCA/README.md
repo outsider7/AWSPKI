@@ -8,6 +8,3 @@
 
 3. 混合PKI方案。当您想要无缝管理本地与AWS环境的加密密钥时，请参见
 [Hybrid PKI](https://github.com/outsider7/AWSPKI/blob/main/HybridPKI/README.md) 
-
-4. Matter证书相关文档，请参见
-[Matter PKI](https://github.com/outsider7/AWSPKI/blob/main/MatterCA/README.md) 
